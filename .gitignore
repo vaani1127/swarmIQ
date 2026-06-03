@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Virtual envs
+venv/
+.venv/
+env/
+
+# Secrets
+.env
+.env.local
+*.key
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Build / logs
+dist/
+build/
+*.log
+
+# Private strategy docs (NOT for public repo)
+agent_swarms_student_roadmap.html
+agent_swarm_complete_blueprint.html

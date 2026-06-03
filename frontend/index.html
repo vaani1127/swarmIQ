@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SwarmIQ</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <button id="theme-toggle" aria-label="Toggle theme" onclick="toggleTheme()">🌙</button>
+  <div class="container">
+
+    <!-- HERO -->
+    <section class="hero">
+      <h1 class="logo">Swarm<span class="accent">IQ</span></h1>
+      <p class="tagline">6 specialized AI agents. One intelligence report.</p>
+      <div class="input-wrap">
+        <input type="text" id="query" placeholder="e.g. Analyze Zepto as an investment opportunity in India" />
+        <button id="launch-btn" onclick="launchSwarm()">Launch Swarm ↗</button>
+      </div>
+      <div class="example-queries">
+        <button class="example-chip" onclick="useExample(this)">Analyze Zepto as an investment opportunity in India</button>
+        <button class="example-chip" onclick="useExample(this)">Research Anthropic's competitive position in AI</button>
+        <button class="example-chip" onclick="useExample(this)">Evaluate Stripe as a payments market leader</button>
+      </div>
+    </section>
+
+    <!-- LIVE AGENT ACTIVITY -->
+    <div id="swarm-section" class="section hidden">
+      <h2 class="section-title">Live Agent Activity</h2>
+      <div class="timer-bar" id="timer-bar">Elapsed: <strong id="timer-value">0.0s</strong></div>
+      <div class="agents-grid" id="agents-grid">
+
+        <div class="agent-card" data-agent="Orchestrator">
+          <div class="agent-icon">O</div>
+          <div class="agent-name">Orchestrator</div>
+          <div class="agent-status">Idle</div>
+        </div>
+
+        <div class="agent-card" data-agent="Market Analyst">
+          <div class="agent-icon">M</div>
+          <div class="agent-name">Market Analyst</div>
+          <div class="agent-status">Idle</div>
+        </div>
+
+        <div class="agent-card" data-agent="Financial Analyst">
+          <div class="agent-icon">F</div>
+          <div class="agent-name">Financial Analyst</div>
+          <div class="agent-status">Idle</div>
+        </div>
+
+        <div class="agent-card" data-agent="Risk Analyst">
+          <div class="agent-icon">R</div>
+          <div class="agent-name">Risk Analyst</div>
+          <div class="agent-status">Idle</div>
+        </div>
+
+        <div class="agent-card" data-agent="Competitive Analyst">
+          <div class="agent-icon">C</div>
+          <div class="agent-name">Competitive Analyst</div>
+          <div class="agent-status">Idle</div>
+        </div>
+
+        <div class="agent-card critic-card" data-agent="Critic">
+          <div class="agent-icon">✕</div>
+          <div class="agent-name">Critic</div>
+          <div class="agent-status">Idle</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- QUALITY REVIEW -->
+    <div id="critic-section" class="section hidden">
+      <h2 class="section-title">Quality Review</h2>
+      <div class="critic-box" id="critic-box"></div>
+    </div>
+
+    <!-- INTELLIGENCE REPORT -->
+    <div id="report-section" class="section hidden">
+      <h2 class="section-title">Intelligence Report</h2>
+      <div id="revision-banner" class="revision-banner hidden">
+        <strong>⚠ Critic flagged this report for revision.</strong> Review the Quality Review section above for contradictions or unsupported claims before relying on these findings.
+      </div>
+      <div class="report-card">
+        <div id="report-content"></div>
+        <div class="report-actions">
+          <button class="download-btn" onclick="copyReport()">Copy Report ↗</button>
+          <button class="download-btn" id="pdf-btn" onclick="downloadPDF()">Download PDF ↗</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

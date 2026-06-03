@@ -67,6 +67,16 @@ Optional sanity check before opening the browser:
 python -m backend.test_agents   # hits real APIs end-to-end, ~30-60s
 ```
 
+## Docker (optional)
+
+```bash
+docker build -t swarmiq .
+docker run --env-file .env -p 8000:8000 swarmiq
+# → http://localhost:8000
+```
+
+Container respects `$PORT` so it drops straight into any platform that injects it (Render, Railway, Fly, Cloud Run).
+
 ## Deploy (Render — free tier)
 
 1. Push this repo to GitHub.

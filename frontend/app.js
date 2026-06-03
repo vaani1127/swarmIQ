@@ -1,3 +1,4 @@
+// ── Theme (runs before DOM paint to avoid flicker) ────────────────────────────
 (function initTheme() {
   const saved = localStorage.getItem("swarmiq-theme") || "dark";
   if (saved === "light") document.documentElement.setAttribute("data-theme", "light");
@@ -13,6 +14,7 @@ function toggleTheme() {
   if (btn) btn.textContent = next === "light" ? "☀️" : "🌙";
 }
 
+// ── Example queries ────────────────────────────────────────────────────────────
 const EXAMPLE_QUERIES = [
   "Analyze Zepto as an investment opportunity in India",
   "Research Anthropic's competitive position in AI",
@@ -91,9 +93,25 @@ function useExample(el) {
   input.focus();
 }
 
+// ── Core state ─────────────────────────────────────────────────────────────────
 const SESSION_ID = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 const API_BASE = location.origin;
 const WS_BASE = (location.protocol === "https:" ? "wss:" : "ws:") + "//" + location.host;
+
+const AGENT_DISPLAY_NAMES = {
+  market: "Market Analyst",
+  financial: "Financial Analyst",
+  risk: "Risk Analyst",
+  competitive: "Competitive Analyst",
+};
+
+const AGENT_BADGE_COLORS = {
+  "Market Analyst":      { bg: "rgba(59,130,246,0.15)",  color: "#3b82f6" },
+  "Financial Analyst":   { bg: "rgba(34,197,94,0.15)",   color: "#22c55e" },
+  "Risk Analyst":        { bg: "rgba(245,158,11,0.15)",  color: "#f59e0b" },
+  "Competitive Analyst": { bg: "rgba(168,85,247,0.15)",  color: "#a855f7" },
+  "Critic":              { bg: "rgba(239,68,68,0.15)",   color: "#ef4444" },
+};
 
 let ws = null;
 let reportText = "";
@@ -102,7 +120,128 @@ let lastCritic = null;
 let lastElapsed = 0;
 let timerStart = 0;
 let timerInterval = null;
+let debateActive = false;
 
+// ── Auth state ─────────────────────────────────────────────────────────────────
+let msalInstance = null;
+let currentUser = null;
+let authToken = null;
+let authConfig = null;
+
+// ── Pipeline DAG controller ────────────────────────────────────────────────────
+const DAG = (() => {
+  let specDone = new Set();
+
+  function nodeEl(id) { return document.getElementById("dag-" + id); }
+  function dotsEl(id) { return document.getElementById("dag-dots-" + id); }
+
+  function setNode(id, ...classes) {
+    const el = nodeEl(id);
+    if (!el) return;
+    el.className = "dag-node";
+    classes.forEach(c => { if (c) el.classList.add(c); });
+  }
+
+  function setDots(id, on) {
+    const el = dotsEl(id);
+    if (el) el.classList.toggle("dag-active", on);
+  }
+
+  function specKey(agentName) {
+    return agentName.split(" ")[0].toLowerCase();
+  }
+
+  function checkAllSpecsDone() {
+    if (specDone.size >= 4) setDots("merge", true);
+  }
+
+  return {
+    reset() {
+      specDone.clear();
+      ["orch", "market", "financial", "risk", "competitive"].forEach(id => setNode(id));
+      ["debate", "critic", "synthesizer"].forEach(id => setNode(id, "dag-faint"));
+      document.querySelectorAll(".dag-dots").forEach(d => d.classList.remove("dag-active"));
+    },
+
+    onEvent(data) {
+      const agent  = data.agent  || "";
+      const status = data.status || "";
+      const type   = data.type   || "";
+
+      if (type === "cache_hit") {
+        ["orch","market","financial","risk","competitive","debate","critic","synthesizer"]
+          .forEach(id => setNode(id, "dag-done"));
+        document.querySelectorAll(".dag-dots").forEach(d => d.classList.remove("dag-active"));
+        return;
+      }
+
+      if (type === "debate_turn") {
+        setNode("debate", "dag-active-amber");
+        setDots("deb-crit", true);
+        return;
+      }
+
+      if (type === "debate_resolved") {
+        setNode("debate", "dag-done");
+        setDots("merge", false);
+        return;
+      }
+
+      if (type === "revision_requested") {
+        setNode("critic", "dag-critic-revision");
+        return;
+      }
+
+      if (type === "revision_complete") {
+        setNode("critic", data.new_status === "APPROVED" ? "dag-critic-approved" : "dag-done");
+        return;
+      }
+
+      if (agent === "Orchestrator") {
+        if (status === "started") { setNode("orch", "dag-active-purple"); setDots("orch", true); }
+        else if (status === "done") {
+          setNode("orch", "dag-done"); setDots("orch", false);
+          ["market","financial","risk","competitive"].forEach(s => setDots(s, true));
+        }
+        return;
+      }
+
+      const SPECIALISTS = ["Market Analyst","Financial Analyst","Risk Analyst","Competitive Analyst"];
+      if (SPECIALISTS.includes(agent)) {
+        const k = specKey(agent);
+        if (status === "working") {
+          setNode(k, "dag-active-blue");
+        } else if (status === "done" || type === "agent_partial_result") {
+          setNode(k, "dag-done"); setDots(k, false);
+          specDone.add(k); checkAllSpecsDone();
+        } else if (status === "error") {
+          setNode(k, "dag-error"); setDots(k, false);
+          specDone.add(k); checkAllSpecsDone();
+        }
+        return;
+      }
+
+      if (agent === "Critic") {
+        if (status === "thinking") { setNode("critic", "dag-active-red"); setDots("deb-crit", true); }
+        else if (status === "done") {
+          const el = nodeEl("critic");
+          if (el && !el.classList.contains("dag-critic-approved") && !el.classList.contains("dag-critic-revision")) {
+            setNode("critic", "dag-done");
+          }
+          setDots("deb-crit", false);
+        }
+        return;
+      }
+
+      if (agent === "Synthesizer") {
+        if (status === "thinking") { setNode("synthesizer", "dag-active-blue"); setDots("crit-synth", true); }
+        else if (status === "done") { setNode("synthesizer", "dag-done"); setDots("crit-synth", false); }
+      }
+    },
+  };
+})();
+
+// ── Timer ─────────────────────────────────────────────────────────────────────
 function startTimer() {
   timerStart = performance.now();
   const el = document.getElementById("timer-value");
@@ -123,13 +262,62 @@ function stopTimer() {
   if (el) el.textContent = secs.toFixed(1) + "s";
 }
 
+// ── Agent card rendering ───────────────────────────────────────────────────────
+function populateAgentCard(agentName, data) {
+  const card = document.querySelector('[data-agent="' + agentName + '"]');
+  if (!card) return;
+  const existing = card.querySelector(".agent-details");
+  if (existing) existing.remove();
+
+  const details = document.createElement("div");
+  details.className = "agent-details";
+
+  const conf = data.confidence || "Medium";
+  const confColor =
+    conf === "High"   ? "var(--success)" :
+    conf === "Low"    ? "var(--danger)"  : "var(--accent)";
+  const badge = document.createElement("span");
+  badge.className = "conf-badge";
+  badge.textContent = conf + " confidence";
+  badge.style.cssText =
+    `background:${confColor}1a;color:${confColor};border:1px solid ${confColor}33;`;
+  details.appendChild(badge);
+
+  const metrics = Array.isArray(data.key_metrics) ? data.key_metrics : [];
+  if (metrics.length > 0) {
+    const list = document.createElement("ul");
+    list.className = "metrics-list";
+    metrics.slice(0, 4).forEach(m => {
+      const li = document.createElement("li");
+      li.textContent = typeof m === "string" ? m : JSON.stringify(m);
+      li.title = li.textContent;
+      list.appendChild(li);
+    });
+    details.appendChild(list);
+  } else if (data.findings_preview) {
+    const preview = document.createElement("p");
+    preview.className = "findings-preview";
+    preview.textContent = data.findings_preview;
+    details.appendChild(preview);
+  }
+
+  card.appendChild(details);
+}
+
+function handleCacheHit() {
+  const names = ["Orchestrator","Market Analyst","Financial Analyst","Risk Analyst","Competitive Analyst","Critic"];
+  names.forEach(n => updateAgentCard(n, "done", "Loaded from cache"));
+  const el = document.getElementById("timer-value");
+  if (el) el.textContent = "⚡ cached";
+}
+
 function updateAgentCard(agentName, status, message) {
   const card = document.querySelector('[data-agent="' + agentName + '"]');
   if (!card) return;
 
   const statusEl = card.querySelector(".agent-status");
 
-  card.classList.remove("working", "done", "idle");
+  card.classList.remove("working", "done", "idle", "needs-revision");
 
   if (status === "done") {
     card.classList.add("done");
@@ -142,6 +330,7 @@ function updateAgentCard(agentName, status, message) {
   }
 }
 
+// ── Critic result ──────────────────────────────────────────────────────────────
 function showCriticResult(critic) {
   document.getElementById("critic-section").classList.remove("hidden");
 
@@ -167,6 +356,118 @@ function showCriticResult(critic) {
   `;
 }
 
+// ── Revision flow ──────────────────────────────────────────────────────────────
+function handleRevisionRequested(data) {
+  const flagged = (data.flagged_agents || []).map(k => AGENT_DISPLAY_NAMES[k] || k);
+  const issues = data.issues || [];
+
+  flagged.forEach(name => {
+    const card = document.querySelector('[data-agent="' + name + '"]');
+    if (!card) return;
+    card.classList.remove("working", "done", "idle");
+    card.classList.add("needs-revision");
+    const statusEl = card.querySelector(".agent-status");
+    if (statusEl) statusEl.textContent = "Revision requested";
+  });
+
+  const label = flagged.length
+    ? "Critic requested revision from: " + flagged.join(" + ")
+    : "Critic requested revision from all specialists";
+
+  const entry = document.createElement("div");
+  entry.className = "revision-entry";
+  entry.id = "revision-entry-pending";
+  entry.innerHTML = `<span style="color:var(--danger);margin-right:6px;">⟳</span>${label}`;
+  if (issues.length) {
+    const detail = document.createElement("div");
+    detail.style.cssText = "font-size:11px;opacity:0.7;margin-top:3px;";
+    detail.textContent = issues.slice(0, 2).join("; ");
+    entry.appendChild(detail);
+  }
+
+  const log = document.getElementById("revision-log");
+  if (log) log.appendChild(entry);
+}
+
+function handleRevisionComplete(data) {
+  const newStatus = data.new_status || "APPROVED";
+  const isApproved = newStatus === "APPROVED";
+  const icon = isApproved ? "✓" : "✗";
+  const color = isApproved ? "var(--success)" : "var(--danger)";
+  const note = isApproved ? "" : " (proceeding to synthesis)";
+
+  const pending = document.getElementById("revision-entry-pending");
+  if (pending) {
+    pending.removeAttribute("id");
+    if (isApproved) pending.classList.add("complete");
+    pending.innerHTML =
+      `<span style="color:${color};margin-right:6px;">${icon}</span>` +
+      `Revision complete — Critic verdict: <strong>${newStatus}</strong>${note}`;
+  }
+}
+
+// ── Typewriter ─────────────────────────────────────────────────────────────────
+async function _typewriter(el, text, duration) {
+  const chars = [...text];
+  const delay = chars.length > 0 ? Math.max(8, Math.floor(duration / chars.length)) : 0;
+  for (const ch of chars) {
+    el.textContent += ch;
+    await new Promise(r => setTimeout(r, delay));
+  }
+}
+
+// ── Debate panel ───────────────────────────────────────────────────────────────
+function handleDebateTurn(data) {
+  const section = document.getElementById("debate-section");
+  const topicEl = document.getElementById("debate-topic");
+  const turnsEl = document.getElementById("debate-turns");
+  const panelEl = document.getElementById("debate-panel");
+
+  if (!debateActive) {
+    debateActive = true;
+    if (section) section.classList.remove("hidden");
+    if (panelEl) panelEl.classList.add("debating");
+    if (topicEl) topicEl.textContent = "⚡ Conflict Detected: " + (data.conflict_topic || "");
+    if (section) section.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  const agentName = data.agent || "";
+  const point = data.point || "";
+  const theme = AGENT_BADGE_COLORS[agentName] || { bg: "rgba(148,163,184,0.12)", color: "#94a3b8" };
+
+  const bubble = document.createElement("div");
+  bubble.className = "debate-bubble";
+
+  const badge = document.createElement("span");
+  badge.className = "debate-badge";
+  badge.textContent = agentName;
+  badge.style.cssText = `background:${theme.bg};color:${theme.color};`;
+
+  const textEl = document.createElement("div");
+  textEl.className = "debate-text";
+
+  bubble.appendChild(badge);
+  bubble.appendChild(textEl);
+  if (turnsEl) turnsEl.appendChild(bubble);
+
+  _typewriter(textEl, point, 300);
+}
+
+function handleDebateResolved(data) {
+  debateActive = false;
+  const panelEl = document.getElementById("debate-panel");
+  if (panelEl) panelEl.classList.remove("debating");
+
+  const resEl = document.getElementById("debate-resolution");
+  if (resEl) {
+    resEl.classList.remove("hidden");
+    resEl.innerHTML =
+      `<span style="color:var(--success);margin-right:8px;">✓</span>` +
+      (data.resolution || "");
+  }
+}
+
+// ── Report rendering ───────────────────────────────────────────────────────────
 function renderReport(markdown) {
   reportText = markdown;
   document.getElementById("report-section").classList.remove("hidden");
@@ -183,7 +484,8 @@ function renderReport(markdown) {
   document.getElementById("report-section").scrollIntoView({ behavior: "smooth" });
 }
 
-function launchSwarm() {
+// ── Launch swarm ───────────────────────────────────────────────────────────────
+async function launchSwarm() {
   const query = document.getElementById("query").value.trim();
   if (!query) {
     alert("Please enter a research query");
@@ -201,11 +503,30 @@ function launchSwarm() {
   document.querySelectorAll(".agent-card").forEach(card => {
     card.classList.remove("working", "done", "idle");
     card.querySelector(".agent-status").textContent = "Waiting...";
+    const details = card.querySelector(".agent-details");
+    if (details) details.remove();
   });
+  DAG.reset();
 
   document.getElementById("critic-section").classList.add("hidden");
   document.getElementById("report-section").classList.add("hidden");
   document.getElementById("revision-banner").classList.add("hidden");
+
+  const revLog = document.getElementById("revision-log");
+  if (revLog) revLog.innerHTML = "";
+  document.querySelectorAll(".agent-card").forEach(c => c.classList.remove("needs-revision"));
+
+  debateActive = false;
+  document.getElementById("debate-section").classList.add("hidden");
+  document.getElementById("debate-topic").textContent = "";
+  document.getElementById("debate-turns").innerHTML = "";
+  const debResEl = document.getElementById("debate-resolution");
+  if (debResEl) { debResEl.classList.add("hidden"); debResEl.innerHTML = ""; }
+  const debPanelEl = document.getElementById("debate-panel");
+  if (debPanelEl) debPanelEl.classList.remove("debating");
+
+  // Refresh auth token silently before making the request
+  await _refreshTokenIfNeeded();
 
   startTimer();
   ws = new WebSocket(WS_BASE + "/ws/" + SESSION_ID);
@@ -216,8 +537,12 @@ function launchSwarm() {
       formData.append("query", query);
       formData.append("session_id", SESSION_ID);
 
+      const headers = {};
+      if (authToken) headers["Authorization"] = "Bearer " + authToken;
+
       fetch(API_BASE + "/analyze", {
         method: "POST",
+        headers,
         body: formData,
       });
     }, 400);
@@ -225,6 +550,8 @@ function launchSwarm() {
 
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
+
+    DAG.onEvent(data);
 
     if (data.agent === "SYSTEM" && data.status === "complete") {
       lastElapsed = (performance.now() - timerStart) / 1000;
@@ -237,6 +564,22 @@ function launchSwarm() {
       renderReport(data.report);
       btn.disabled = false;
       btn.textContent = "Launch Swarm ↗";
+
+      // Phase 5: persist result for anonymous users in localStorage
+      _saveToLocalStorage(data.report, data.critic, query);
+    } else if (data.type === "cache_hit") {
+      handleCacheHit();
+    } else if (data.type === "agent_partial_result") {
+      updateAgentCard(data.agent, data.status, data.message);
+      populateAgentCard(data.agent, data);
+    } else if (data.type === "debate_turn") {
+      handleDebateTurn(data);
+    } else if (data.type === "debate_resolved") {
+      handleDebateResolved(data);
+    } else if (data.type === "revision_requested") {
+      handleRevisionRequested(data);
+    } else if (data.type === "revision_complete") {
+      handleRevisionComplete(data);
     } else {
       updateAgentCard(data.agent, data.status, data.message);
     }
@@ -250,6 +593,7 @@ function launchSwarm() {
   };
 }
 
+// ── Copy / PDF ─────────────────────────────────────────────────────────────────
 function copyReport() {
   navigator.clipboard.writeText(reportText);
   const btn = document.querySelector(".report-actions .download-btn");
@@ -417,12 +761,320 @@ async function downloadPDF() {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASE 4: Microsoft Entra auth via MSAL.js
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function initAuth() {
+  try {
+    const resp = await fetch(API_BASE + "/config");
+    if (!resp.ok) return;
+    authConfig = await resp.json();
+
+    if (!authConfig.authEnabled) return;
+    if (typeof msal === "undefined") {
+      console.warn("[Auth] MSAL.js not loaded — auth disabled");
+      return;
+    }
+
+    msalInstance = new msal.PublicClientApplication({
+      auth: {
+        clientId: authConfig.clientId,
+        authority: authConfig.authority,
+        redirectUri: location.origin,
+      },
+      cache: { cacheLocation: "sessionStorage" },
+    });
+    await msalInstance.initialize();
+
+    // Restore session if account already signed in
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+      await _refreshTokenForAccount(accounts[0]);
+    } else {
+      // Show sign-in option now that auth is confirmed available
+      _showSignInOption();
+    }
+  } catch (e) {
+    console.warn("[Auth] init failed:", e);
+  }
+}
+
+async function _refreshTokenForAccount(account) {
+  try {
+    const result = await msalInstance.acquireTokenSilent({
+      scopes: ["openid", "profile", "email"],
+      account,
+    });
+    authToken = result.idToken;
+    currentUser = {
+      name: account.name || account.username || "User",
+      oid: account.localAccountId,
+    };
+    _updateAuthUI();
+  } catch (e) {
+    authToken = null;
+    currentUser = null;
+    _showSignInOption();
+  }
+}
+
+async function _refreshTokenIfNeeded() {
+  if (!msalInstance || !currentUser) return;
+  const accounts = msalInstance.getAllAccounts();
+  if (accounts.length === 0) return;
+  try {
+    const result = await msalInstance.acquireTokenSilent({
+      scopes: ["openid", "profile", "email"],
+      account: accounts[0],
+    });
+    authToken = result.idToken;
+  } catch (e) {
+    console.warn("[Auth] token refresh failed:", e);
+  }
+}
+
+async function signIn() {
+  if (!msalInstance) return;
+  try {
+    const result = await msalInstance.loginPopup({
+      scopes: ["openid", "profile", "email"],
+    });
+    authToken = result.idToken;
+    currentUser = {
+      name: result.account.name || result.account.username || "User",
+      oid: result.account.localAccountId,
+    };
+    _updateAuthUI();
+    loadHistory();
+  } catch (e) {
+    if (e.errorCode !== "user_cancelled") {
+      console.warn("[Auth] sign-in failed:", e);
+    }
+  }
+}
+
+async function signOut() {
+  if (!msalInstance) return;
+  try {
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+      await msalInstance.logoutPopup({ account: accounts[0] });
+    }
+  } catch (e) {
+    console.warn("[Auth] sign-out error:", e);
+  }
+  authToken = null;
+  currentUser = null;
+  _updateAuthUI();
+}
+
+function _showSignInOption() {
+  const signinBtn = document.getElementById("signin-btn");
+  const signinBanner = document.getElementById("signin-banner");
+  if (signinBtn) signinBtn.classList.remove("hidden");
+  if (signinBanner) signinBanner.classList.remove("hidden");
+}
+
+function _updateAuthUI() {
+  const signinBtn = document.getElementById("signin-btn");
+  const userInfo = document.getElementById("user-info");
+  const userName = document.getElementById("user-name");
+  const historyBtn = document.getElementById("history-btn");
+  const signinBanner = document.getElementById("signin-banner");
+
+  if (currentUser) {
+    if (signinBtn) signinBtn.classList.add("hidden");
+    if (userInfo) userInfo.classList.remove("hidden");
+    if (userName) userName.textContent = currentUser.name;
+    if (historyBtn) historyBtn.classList.remove("hidden");
+    if (signinBanner) signinBanner.classList.add("hidden");
+  } else {
+    if (authConfig && authConfig.authEnabled) {
+      if (signinBtn) signinBtn.classList.remove("hidden");
+      if (signinBanner) signinBanner.classList.remove("hidden");
+    }
+    if (userInfo) userInfo.classList.add("hidden");
+    if (historyBtn) historyBtn.classList.add("hidden");
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASE 4: History panel
+// ─────────────────────────────────────────────────────────────────────────────
+
+function toggleHistory() {
+  const panel = document.getElementById("history-panel");
+  if (!panel) return;
+  if (panel.classList.contains("hidden")) {
+    panel.classList.remove("hidden");
+    document.getElementById("history-overlay").classList.remove("hidden");
+    loadHistory();
+  } else {
+    closeHistory();
+  }
+}
+
+function closeHistory() {
+  const panel = document.getElementById("history-panel");
+  const overlay = document.getElementById("history-overlay");
+  if (panel) panel.classList.add("hidden");
+  if (overlay) overlay.classList.add("hidden");
+}
+
+async function loadHistory() {
+  if (!authToken) return;
+  const list = document.getElementById("history-list");
+  if (list) list.innerHTML = '<p class="history-empty">Loading…</p>';
+  try {
+    const resp = await fetch(API_BASE + "/history", {
+      headers: { Authorization: "Bearer " + authToken },
+    });
+    if (!resp.ok) {
+      if (list) list.innerHTML = '<p class="history-empty">Could not load history.</p>';
+      return;
+    }
+    const data = await resp.json();
+    _renderHistoryList(data.analyses || []);
+  } catch (e) {
+    console.warn("[History] load failed:", e);
+    if (list) list.innerHTML = '<p class="history-empty">Could not load history.</p>';
+  }
+}
+
+function _renderHistoryList(analyses) {
+  const list = document.getElementById("history-list");
+  if (!list) return;
+  if (analyses.length === 0) {
+    list.innerHTML = '<p class="history-empty">No analyses yet. Run a query to get started.</p>';
+    return;
+  }
+  list.innerHTML = analyses.map(a => `
+    <div class="history-card">
+      <div class="history-card-company">${_esc(a.company || "Unknown")}</div>
+      <div class="history-card-query">${_esc(a.query || "")}</div>
+      <div class="history-card-meta">${_fmtDate(a.created_at)}</div>
+      <button class="history-load-btn" onclick="loadAnalysis('${_esc(a._id)}')">Load</button>
+    </div>
+  `).join("");
+}
+
+async function loadAnalysis(analysisId) {
+  if (!authToken) return;
+  try {
+    const resp = await fetch(API_BASE + "/analysis/" + encodeURIComponent(analysisId), {
+      headers: { Authorization: "Bearer " + authToken },
+    });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const analysis = data.analysis;
+
+    // Populate state
+    lastQuery = analysis.query || "";
+    lastCritic = analysis.critic_result || null;
+    lastElapsed = analysis.duration_seconds || 0;
+
+    // Show relevant sections
+    document.getElementById("swarm-section").classList.remove("hidden");
+    document.getElementById("revision-banner").classList.add("hidden");
+    document.getElementById("debate-section").classList.add("hidden");
+
+    if (lastCritic) {
+      showCriticResult(lastCritic);
+      if (lastCritic.status !== "APPROVED") {
+        document.getElementById("revision-banner").classList.remove("hidden");
+      }
+    }
+    if (analysis.final_report) renderReport(analysis.final_report);
+
+    closeHistory();
+  } catch (e) {
+    console.warn("[History] loadAnalysis failed:", e);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASE 5: localStorage fallback for anonymous users
+// ─────────────────────────────────────────────────────────────────────────────
+
+const _LS_KEY = "swarmiq:last_analysis";
+
+function _saveToLocalStorage(report, critic, query) {
+  try {
+    localStorage.setItem(_LS_KEY, JSON.stringify({
+      query,
+      report,
+      critic,
+      savedAt: new Date().toISOString(),
+    }));
+  } catch (e) { /* quota exceeded or private browsing */ }
+}
+
+function _loadFromLocalStorage() {
+  try {
+    const raw = localStorage.getItem(_LS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
+function _checkResumeButton() {
+  const saved = _loadFromLocalStorage();
+  if (!saved || !saved.report) return;
+  const btn = document.getElementById("resume-btn");
+  if (!btn) return;
+  const label = saved.query ? `Resume: "${saved.query.slice(0, 50)}${saved.query.length > 50 ? "…" : ""}"` : "Resume last analysis";
+  btn.textContent = label;
+  btn.classList.remove("hidden");
+}
+
+function resumeLastAnalysis() {
+  const saved = _loadFromLocalStorage();
+  if (!saved || !saved.report) return;
+
+  lastQuery = saved.query || "";
+  lastCritic = saved.critic || null;
+  lastElapsed = 0;
+
+  document.getElementById("swarm-section").classList.remove("hidden");
+  document.getElementById("revision-banner").classList.add("hidden");
+
+  if (lastCritic) {
+    showCriticResult(lastCritic);
+    if (lastCritic.status !== "APPROVED") {
+      document.getElementById("revision-banner").classList.remove("hidden");
+    }
+  }
+  renderReport(saved.report);
+
+  const btn = document.getElementById("resume-btn");
+  if (btn) btn.classList.add("hidden");
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function _esc(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function _fmtDate(isoStr) {
+  if (!isoStr) return "";
+  try { return new Date(isoStr).toLocaleString(); } catch { return isoStr; }
+}
+
+// ── DOMContentLoaded ──────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("query").addEventListener("keydown", e => {
     if (e.key === "Enter") launchSwarm();
   });
+
   const isLight = document.documentElement.getAttribute("data-theme") === "light";
   const tbtn = document.getElementById("theme-toggle");
   if (tbtn) tbtn.textContent = isLight ? "☀️" : "🌙";
+
   renderExampleChips();
+  _checkResumeButton();
+  initAuth();
 });

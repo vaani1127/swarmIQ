@@ -1,26 +1,36 @@
-from dotenv import load_dotenv
-from groq import Groq
-from tavily import TavilyClient
 import os
+
+from dotenv import load_dotenv
+from openai import AzureOpenAI
+from tavily import TavilyClient
 
 load_dotenv()
 
 
 def llm(system, user, json_mode=False):
-    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-    kwargs = {
-        "model": "llama-3.3-70b-versatile",
-        "max_tokens": 2048,
-        "temperature": 0.2,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-    }
-    if json_mode:
-        kwargs["response_format"] = {"type": "json_object"}
-    response = client.chat.completions.create(**kwargs)
-    return response.choices[0].message.content
+    try:
+        client = AzureOpenAI(
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+            api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+        )
+        kwargs = {
+            "model": os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
+            "max_tokens": 2048,
+            "temperature": 0.2,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+        }
+        if json_mode:
+            kwargs["response_format"] = {"type": "json_object"}
+        response = client.chat.completions.create(**kwargs)
+        return response.choices[0].message.content
+    except Exception as e:
+        if "connection" in str(e).lower() or "unreachable" in str(e).lower() or "failed to establish" in str(e).lower() or "name or service not known" in str(e).lower() or isinstance(e, (ConnectionError, TimeoutError, OSError)):
+            raise RuntimeError("Azure OpenAI endpoint unreachable — check AZURE_OPENAI_ENDPOINT in .env") from e
+        raise
 
 
 def web_search(query, n=3):

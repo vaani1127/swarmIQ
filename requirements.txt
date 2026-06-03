@@ -1,4 +1,7 @@
-groq==1.4.0
+openai>=1.30.0
+redis>=5.0.0
+semantic-kernel>=1.0.0
+slowapi>=0.1.9
 tavily-python==0.7.25
 fastapi==0.136.3
 uvicorn==0.48.0
@@ -7,3 +10,7 @@ python-multipart==0.0.29
 aiofiles==25.1.0
 python-dotenv==1.2.2
 pydantic==2.13.4
+msal>=1.26.0
+motor>=3.3.0
+python-jose[cryptography]>=3.3.0
+httpx>=0.25.0

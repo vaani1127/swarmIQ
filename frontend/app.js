@@ -530,6 +530,18 @@ function handleRevisionComplete(data) {
       `<span style="color:${color};margin-right:6px;">${icon}</span>` +
       `Revision complete — Critic verdict: <strong>${newStatus}</strong>${note}`;
   }
+
+  // Refresh the Critic badge with the post-revision verdict so the UI doesn't
+  // show stale "Needs Revision / Low" after the second pass approves.
+  if (data.critic_result) {
+    lastCritic = data.critic_result;
+    showCriticResult(lastCritic);
+    const banner = document.getElementById("revision-banner");
+    if (banner) {
+      if (isApproved) banner.classList.add("hidden");
+      else banner.classList.remove("hidden");
+    }
+  }
 }
 
 // -- Typewriter ----------------------------------------

@@ -66,7 +66,14 @@ _SYNTHESIZER_INSTRUCTIONS = (
     "## Financial Health, ## Risk Assessment, ## Competitive Landscape, ## Key Insights, "
     "## Recommendation, ## Confidence Score. For each major finding, note in parentheses "
     "which agent found it. Be specific, use real data points from the outputs. At the very "
-    "end, add a line: Overall Confidence: [score 0-100]/100"
+    "end, add a line: Overall Confidence: [score 0-100]/100. "
+    "CRITICAL FORMATTING RULES: "
+    "(a) Do NOT emit any code fences, JSON blocks, or raw data structures in the output. "
+    "(b) Do NOT echo the literal Critic verdict JSON — translate any critic findings into "
+    "prose inside the relevant section. "
+    "(c) Do NOT add a top-level '# Executive Intelligence Report' heading; the report starts "
+    "directly with '## Executive Summary'. "
+    "(d) Output must be valid GitHub-Flavored Markdown with no triple-backtick fences anywhere."
 )
 
 
@@ -250,6 +257,7 @@ async def run_sk_validation_synthesis(
             "Critic", "revision_complete", "",
             type="revision_complete",
             new_status=critic_result.get("status", "APPROVED"),
+            critic_result=critic_result,
         )
 
     await emit("Critic", "done", f"Review complete: {critic_result.get('status', 'APPROVED')}")
@@ -257,18 +265,30 @@ async def run_sk_validation_synthesis(
     # ── Synthesis ──────────────────────────────────────────────────────────────
     await emit("Synthesizer", "thinking", "Writing final intelligence report via Semantic Kernel...")
 
+    # Summarize the critic as prose so the Synthesizer doesn't echo raw JSON in the report.
+    _critic_status = critic_result.get("status", "APPROVED")
+    _critic_conf = critic_result.get("overall_confidence", "Medium")
+    _critic_notes = critic_result.get("notes", "")
+    _critic_issues = critic_result.get("issues") or []
+    _issues_text = "; ".join(str(i) for i in _critic_issues[:3]) if _critic_issues else "None"
+    critic_summary = (
+        f"Critic verdict: {_critic_status} (confidence: {_critic_conf}). "
+        f"Issues flagged: {_issues_text}. Notes: {_critic_notes}"
+    )
+
     if revision_happened:
         synth_content = (
             f"Research Query: {query}\n\n"
-            f"Original Specialist Outputs:\n{json.dumps(_compact_outputs(original_outputs), indent=2)}\n\n"
-            f"Revised Specialist Outputs (post-Critic revision):\n{json.dumps(_compact_outputs(current_outputs), indent=2)}\n\n"
-            f"Critic Review:\n{json.dumps(critic_result, indent=2)}"
+            f"Specialist Outputs (post-revision):\n{json.dumps(_compact_outputs(current_outputs), indent=2)}\n\n"
+            f"{critic_summary}\n\n"
+            f"Write the markdown report now. Begin with '## Executive Summary'."
         )
     else:
         synth_content = (
             f"Research Query: {query}\n\n"
             f"Specialist Outputs:\n{json.dumps(_compact_outputs(current_outputs), indent=2)}\n\n"
-            f"Critic Review:\n{json.dumps(critic_result, indent=2)}"
+            f"{critic_summary}\n\n"
+            f"Write the markdown report now. Begin with '## Executive Summary'."
         )
 
     await group_chat.add_chat_message(
@@ -286,6 +306,15 @@ async def run_sk_validation_synthesis(
             await _it3.aclose()
         except Exception:
             pass
+
+    # Belt-and-braces: strip any ```...``` code fences and any leading "# Executive
+    # Intelligence Report" heading that the LLM might emit despite instructions.
+    if final_report:
+        import re as _re
+        final_report = _re.sub(r"```[a-zA-Z]*\s*", "", final_report)
+        final_report = final_report.replace("```", "")
+        final_report = _re.sub(r"^#\s+Executive Intelligence Report\s*\n+", "", final_report.strip())
+        final_report = final_report.strip()
 
     await emit("Synthesizer", "done", "Report ready")
 

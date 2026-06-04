@@ -292,6 +292,72 @@ h2.section-title {
   .agents-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  /* Stack input + Launch button on mobile so they don't squeeze */
+  .input-wrap {
+    flex-direction: column;
+  }
+  input#query,
+  button#launch-btn {
+    width: 100%;
+  }
+
+  /* DAG SVG container — let it scroll horizontally if needed (small screens) */
+  .dag-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #pipeline-dag {
+    min-width: 600px;
+  }
+
+  /* Header — wrap actions on small screens */
+  .app-header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 8px 12px;
+  }
+  .header-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .header-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+  #theme-toggle {
+    width: 34px;
+    height: 34px;
+  }
+
+  /* Hero title slightly smaller on mobile */
+  h1.logo {
+    font-size: 2rem;
+  }
+
+  /* Container padding tighter */
+  .container {
+    padding: 1rem 0.75rem;
+  }
+
+  /* Footer — single line, smaller */
+  .app-footer {
+    font-size: 11px;
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  /* Very narrow phones — extra compact */
+  h1.logo {
+    font-size: 1.7rem;
+  }
+  .agents-grid {
+    grid-template-columns: 1fr;
+  }
+  .app-footer .footer-muted {
+    display: none;
+  }
 }
 
 .agent-card {
@@ -668,6 +734,7 @@ h2.section-title {
   font-size: 11px;
   font-family: system-ui, sans-serif;
   font-weight: 500;
+  -webkit-user-select: none;
   user-select: none;
   pointer-events: none;
   transition: fill 0.35s;

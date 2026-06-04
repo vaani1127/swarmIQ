@@ -86,13 +86,11 @@ graph TD
 
 ## Live Demo
 
-**Deployed App:** `https://swarmiq.azurecontainerapps.io` *(placeholder - replace with the actual Azure Container Apps URL before submission)*
+**Deployed App:** [**swarmiq.vaaniprashar.tech**](https://swarmiq.vaaniprashar.tech)
 
-**No login required** — anonymous users get the full research experience. Sign in with Microsoft to unlock analysis history.
+Hosted on Azure Container Apps in `centralindia`, custom domain via Cloudflare DNS, TLS via ACA managed certificate. Backed by Upstash Redis for query-result caching, Azure Key Vault for all secrets, and a GitHub Actions CI/CD pipeline that auto-deploys on every push to `main`.
 
-**Test credentials (if judge login is needed):**
-- Use "Sign in with Microsoft" → log in with any Microsoft / Azure AD account
-- Or use the provided judge credentials: *(add before submission)*
+**No login required** — anonymous users get the full research experience including the swarm, debate, critic revision loop, and PDF export. Sign in with any Microsoft account (Outlook, Hotmail, Live, work, school) to surface the sign-in flow; analysis history is currently persisted in browser localStorage (Cosmos DB integration is wired in code and ready to enable via a single Key Vault secret update).
 
 ---
 

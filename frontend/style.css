@@ -687,6 +687,21 @@ h2.section-title {
   box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.25);
 }
 
+.download-btn.email-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  border-color: #f59e0b;
+  color: #1c1610;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.28);
+}
+
+.download-btn.email-btn:hover {
+  background: linear-gradient(135deg, #fbbf24 0%, #fb923c 100%);
+  border-color: #fbbf24;
+  color: #1c1610;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.45);
+}
+
 .download-btn#pdf-btn:hover {
   background: var(--accent-hover);
   color: #ffffff;

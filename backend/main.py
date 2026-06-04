@@ -184,6 +184,8 @@ async def analyze(request: Request, query: str = Form(...), session_id: str = Fo
                     "status": "complete",
                     "report": result["report"],
                     "critic": result["critic"],
+                    "outputs": result.get("outputs", []),
+                    "debate": result.get("debate", {}),
                 }))
             except Exception:
                 pass
@@ -255,6 +257,49 @@ async def get_analysis(analysis_id: str, request: Request):
     if not doc or doc.get("user_id") != user_id:
         raise HTTPException(status_code=404, detail="Analysis not found")
     return JSONResponse(content={"status": "ok", "analysis": doc})
+
+
+@app.post("/email-report")
+async def email_report(request: Request):
+    """Send the SwarmIQ intelligence report to the signed-in user's email.
+
+    Body (JSON): {query, report, critic, debate (optional), to (optional override)}
+    """
+    user = await require_auth(request)
+    user_email = (user.get("email") or user.get("preferred_username") or "").strip()
+    user_name = (user.get("name") or user_email.split("@")[0] or "there").strip()
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    to_addr = (body.get("to") or user_email).strip()
+    if not to_addr or "@" not in to_addr:
+        raise HTTPException(status_code=400, detail="No deliverable email address on this account")
+
+    query = (body.get("query") or "").strip()
+    report_md = body.get("report") or ""
+    critic = body.get("critic") or {}
+    debate = body.get("debate") or {}
+    if not report_md:
+        raise HTTPException(status_code=400, detail="No report body to email")
+
+    try:
+        from backend.mailer import send_report_email
+        send_report_email(
+            to_email=to_addr,
+            user_name=user_name,
+            query=query,
+            report_md=report_md,
+            critic=critic,
+            debate=debate,
+        )
+    except Exception as exc:
+        logger.error(f"[Email] send_failed — {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return JSONResponse(content={"status": "ok", "delivered_to": to_addr})
 
 
 app.mount("/", StaticFiles(directory="frontend", html=True), name="static")

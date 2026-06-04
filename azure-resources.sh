@@ -75,6 +75,10 @@ AZURE_AD_CLIENT_SECRET="${AZURE_AD_CLIENT_SECRET:-}"
 COSMOS_DB_CONNECTION_STRING="${COSMOS_DB_CONNECTION_STRING:-}"
 COSMOS_DB_DATABASE_NAME="${COSMOS_DB_DATABASE_NAME:-swarmiq}"
 
+MAIL_ID="${MAIL_ID:-}"
+MAIL_APP_PASSWORD="${MAIL_APP_PASSWORD:-}"
+MAIL_FROM_NAME="${MAIL_FROM_NAME:-SwarmIQ}"
+
 LOCATION="${LOCATION:-eastus}"
 RESOURCE_GROUP="${RESOURCE_GROUP:-swarmiq-rg}"
 ACR_NAME="${ACR_NAME:-swarmiqlacr}"
@@ -144,6 +148,9 @@ az keyvault secret set --vault-name "$KV_NAME" --name "azure-ad-client-id"      
 az keyvault secret set --vault-name "$KV_NAME" --name "azure-ad-client-secret"      --value "${AZURE_AD_CLIENT_SECRET:-disabled}"      --output none
 az keyvault secret set --vault-name "$KV_NAME" --name "cosmos-db-connection-string" --value "${COSMOS_DB_CONNECTION_STRING:-disabled}" --output none
 az keyvault secret set --vault-name "$KV_NAME" --name "cosmos-db-database-name"     --value "$COSMOS_DB_DATABASE_NAME"                 --output none
+az keyvault secret set --vault-name "$KV_NAME" --name "mail-id"                     --value "${MAIL_ID:-disabled}"                     --output none
+az keyvault secret set --vault-name "$KV_NAME" --name "mail-app-password"           --value "${MAIL_APP_PASSWORD:-disabled}"           --output none
+az keyvault secret set --vault-name "$KV_NAME" --name "mail-from-name"              --value "$MAIL_FROM_NAME"                          --output none
 
 echo "Secrets written to Key Vault: $KV_NAME"
 
@@ -220,7 +227,10 @@ az containerapp secret set \
     "azure-ad-client-id=keyvaultref:${KV_URI}/secrets/azure-ad-client-id,identityref:system" \
     "azure-ad-client-secret=keyvaultref:${KV_URI}/secrets/azure-ad-client-secret,identityref:system" \
     "cosmos-db-connection-string=keyvaultref:${KV_URI}/secrets/cosmos-db-connection-string,identityref:system" \
-    "cosmos-db-database-name=keyvaultref:${KV_URI}/secrets/cosmos-db-database-name,identityref:system"
+    "cosmos-db-database-name=keyvaultref:${KV_URI}/secrets/cosmos-db-database-name,identityref:system" \
+    "mail-id=keyvaultref:${KV_URI}/secrets/mail-id,identityref:system" \
+    "mail-app-password=keyvaultref:${KV_URI}/secrets/mail-app-password,identityref:system" \
+    "mail-from-name=keyvaultref:${KV_URI}/secrets/mail-from-name,identityref:system"
 
 # ── Map Container App secrets to environment variables ────────────────────────
 az containerapp update \
@@ -236,7 +246,10 @@ az containerapp update \
     "AZURE_AD_CLIENT_ID=secretref:azure-ad-client-id" \
     "AZURE_AD_CLIENT_SECRET=secretref:azure-ad-client-secret" \
     "COSMOS_DB_CONNECTION_STRING=secretref:cosmos-db-connection-string" \
-    "COSMOS_DB_DATABASE_NAME=secretref:cosmos-db-database-name"
+    "COSMOS_DB_DATABASE_NAME=secretref:cosmos-db-database-name" \
+    "MAIL_ID=secretref:mail-id" \
+    "MAIL_APP_PASSWORD=secretref:mail-app-password" \
+    "MAIL_FROM_NAME=secretref:mail-from-name"
 
 # ── Done ───────────────────────────────────────────────────────────────────────
 APP_URL=$(az containerapp show \

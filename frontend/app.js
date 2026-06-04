@@ -824,8 +824,18 @@ async function launchSwarm() {
       renderReport(data.report);
       resetLaunchButton();
 
-      // Phase 5: persist result for anonymous users in localStorage
-      _saveToLocalStorage(data.report, data.critic, query);
+      // Stash debate so PDF export has it on-hand
+      window.__lastDebate = data.debate || null;
+
+      // Persist full snapshot for anonymous users (Resume + PDF restore + Live Stream rehydrate)
+      _saveToLocalStorage({
+        query,
+        report: data.report,
+        critic: data.critic,
+        outputs: data.outputs || [],
+        debate: data.debate || null,
+        elapsed_seconds: lastElapsed,
+      });
     } else if (data.type === "cache_hit") {
       handleCacheHit();
     } else if (data.type === "agent_skipped" || data.status === "skipped") {
@@ -1075,6 +1085,100 @@ async function downloadPDF() {
       });
     }
 
+    // -- Agent Deliberation block (debate panel, colorful) ----------------
+    const _lastDebate = (window.__lastDebate || null);
+    if (_lastDebate && (_lastDebate.conflict_topic || (_lastDebate.debate && _lastDebate.debate.length))) {
+      ensureSpace(40);
+      writeLabel("Agent Deliberation");
+
+      // Conflict topic — amber strip
+      if (_lastDebate.conflict_topic) {
+        ensureSpace(14);
+        const stripH = 10;
+        const stripY = y;
+        pdf.setFillColor(245, 158, 11); // amber
+        pdf.rect(margin, stripY, 3, stripH, "F");
+        pdf.setFillColor(38, 28, 10);
+        pdf.rect(margin + 3, stripY, contentW - 3, stripH, "F");
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(9);
+        pdf.setTextColor(245, 158, 11);
+        pdf.text("CONFLICT DETECTED", margin + 7, stripY + 4.2);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9.5);
+        pdf.setTextColor(...colors.text);
+        const topicLines = pdf.splitTextToSize(String(_lastDebate.conflict_topic), contentW - 10);
+        let topicY = stripY + 8;
+        topicLines.forEach(l => { pdf.text(l, margin + 7, topicY); topicY += 3.6; });
+        y = topicY + 2;
+      }
+
+      // Per-agent colored cards
+      const _agentColor = {
+        "Market Analyst":      [59, 130, 246],
+        "Financial Analyst":   [34, 197, 94],
+        "Risk Analyst":        [245, 158, 11],
+        "Competitive Analyst": [168, 85, 247],
+        "Critic":              [239, 68, 68],
+        "Synthesizer":         [91, 94, 244],
+      };
+
+      (_lastDebate.debate || []).slice(0, 8).forEach(turn => {
+        const agent = (turn.agent || "Agent").toString();
+        const text = (turn.point || turn.verdict || "").toString();
+        if (!text) return;
+        const rgb = _agentColor[agent] || [148, 163, 184];
+
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9.5);
+        const lines = pdf.splitTextToSize(text, contentW - 12);
+        const cardH = 7 + lines.length * 4.2 + 3;
+        ensureSpace(cardH + 2);
+
+        const cy = y;
+        // Left color strip
+        pdf.setFillColor(rgb[0], rgb[1], rgb[2]);
+        pdf.rect(margin, cy, 2.5, cardH, "F");
+        // Card background
+        pdf.setFillColor(...colors.panel);
+        pdf.rect(margin + 2.5, cy, contentW - 2.5, cardH, "F");
+        // Agent name pill
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(8);
+        pdf.setTextColor(rgb[0], rgb[1], rgb[2]);
+        pdf.text(agent.toUpperCase(), margin + 6, cy + 4.5);
+        // Body text
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9.5);
+        pdf.setTextColor(...colors.text);
+        let by = cy + 9;
+        lines.forEach(l => { pdf.text(l, margin + 6, by); by += 4.2; });
+        y = cy + cardH + 2;
+      });
+
+      // Resolution — green strip
+      if (_lastDebate.resolution) {
+        ensureSpace(12);
+        const stripH = 10;
+        const stripY = y;
+        pdf.setFillColor(34, 197, 94);
+        pdf.rect(margin, stripY, 3, stripH, "F");
+        pdf.setFillColor(10, 30, 18);
+        pdf.rect(margin + 3, stripY, contentW - 3, stripH, "F");
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(9);
+        pdf.setTextColor(34, 197, 94);
+        pdf.text("RESOLUTION", margin + 7, stripY + 4.2);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9.5);
+        pdf.setTextColor(...colors.text);
+        const resLines = pdf.splitTextToSize(String(_lastDebate.resolution), contentW - 10);
+        let resY = stripY + 8;
+        resLines.forEach(l => { pdf.text(l, margin + 7, resY); resY += 3.6; });
+        y = resY + 4;
+      }
+    }
+
     writeLabel("Report");
 
     markdownBlocks(content).forEach(block => {
@@ -1241,6 +1345,7 @@ function _updateAuthUI() {
   const userName = document.getElementById("user-name");
   const historyBtn = document.getElementById("history-btn");
   const signinBanner = document.getElementById("signin-banner");
+  const emailBtn = document.getElementById("email-btn");
 
   if (currentUser) {
     if (signinBtn) signinBtn.classList.add("hidden");
@@ -1248,6 +1353,7 @@ function _updateAuthUI() {
     if (userName) userName.textContent = currentUser.name;
     if (historyBtn) historyBtn.classList.remove("hidden");
     if (signinBanner) signinBanner.classList.add("hidden");
+    if (emailBtn) emailBtn.classList.remove("hidden");
   } else {
     if (authConfig && authConfig.authEnabled) {
       if (signinBtn) signinBtn.classList.remove("hidden");
@@ -1255,6 +1361,48 @@ function _updateAuthUI() {
     }
     if (userInfo) userInfo.classList.add("hidden");
     if (historyBtn) historyBtn.classList.add("hidden");
+    if (emailBtn) emailBtn.classList.add("hidden");
+  }
+}
+
+async function emailReport() {
+  if (!currentUser || !authToken) {
+    showError("Please sign in with Microsoft to email reports.", "swarm");
+    return;
+  }
+  const btn = document.getElementById("email-btn");
+  if (!btn) return;
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Sending...";
+  try {
+    await _refreshTokenIfNeeded();
+    const resp = await fetch(API_BASE + "/email-report", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + authToken,
+      },
+      body: JSON.stringify({
+        query: lastQuery || "",
+        report: reportText || "",
+        critic: lastCritic || {},
+        debate: window.__lastDebate || null,
+      }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || data.status !== "ok") {
+      throw new Error(data.detail || data.message || "Send failed");
+    }
+    btn.textContent = `Sent to ${data.delivered_to} ✓`;
+    setTimeout(() => { btn.textContent = orig; }, 3500);
+  } catch (e) {
+    console.error("[Email] failed", e);
+    btn.textContent = "Send failed";
+    showError("Could not email the report: " + (e.message || e), "swarm");
+    setTimeout(() => { btn.textContent = orig; }, 3500);
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -1326,26 +1474,7 @@ async function loadAnalysis(analysisId) {
     });
     if (!resp.ok) return;
     const data = await resp.json();
-    const analysis = data.analysis;
-
-    // Populate state
-    lastQuery = analysis.query || "";
-    lastCritic = analysis.critic_result || null;
-    lastElapsed = analysis.duration_seconds || 0;
-
-    // Show relevant sections
-    document.getElementById("swarm-section").classList.remove("hidden");
-    document.getElementById("revision-banner").classList.add("hidden");
-    document.getElementById("debate-section").classList.add("hidden");
-
-    if (lastCritic) {
-      showCriticResult(lastCritic);
-      if (lastCritic.status !== "APPROVED") {
-        document.getElementById("revision-banner").classList.remove("hidden");
-      }
-    }
-    if (analysis.final_report) renderReport(analysis.final_report);
-
+    _restoreSwarmState(data.analysis || {});
     closeHistory();
   } catch (e) {
     console.warn("[History] loadAnalysis failed:", e);
@@ -1358,15 +1487,105 @@ async function loadAnalysis(analysisId) {
 
 const _LS_KEY = "swarmiq:last_analysis";
 
-function _saveToLocalStorage(report, critic, query) {
+function _saveToLocalStorage(payload) {
   try {
     localStorage.setItem(_LS_KEY, JSON.stringify({
-      query,
-      report,
-      critic,
+      ...payload,
       savedAt: new Date().toISOString(),
     }));
   } catch (e) { /* quota exceeded or private browsing */ }
+}
+
+// Restore full swarm state into the UI from a saved snapshot.
+// Used by both resumeLastAnalysis (localStorage) and loadAnalysis (Cosmos history).
+function _restoreSwarmState(snap) {
+  if (!snap) return;
+
+  // Show the swarm section + reset its inner panels
+  document.getElementById("swarm-section").classList.remove("hidden");
+  document.getElementById("revision-banner").classList.add("hidden");
+  document.getElementById("debate-section").classList.add("hidden");
+
+  // Re-seed the live log with a clear marker so users know they're viewing history
+  _resetThoughts();
+  _logThought({ agent: "SYSTEM", status: "restored", message: `Loaded analysis from history (${_fmtDate(snap.savedAt)})` });
+
+  // Restore timer display
+  const elapsedSec = snap.elapsed_seconds || snap.duration_seconds || 0;
+  lastElapsed = elapsedSec;
+  const tEl = document.getElementById("timer-value");
+  if (tEl) tEl.textContent = (elapsedSec || 0).toFixed(1) + "s";
+
+  // Restore the DAG: Orchestrator + each specialist + Debate + Critic + Synthesizer
+  DAG.reset();
+  DAG.onEvent({ agent: "Orchestrator", status: "done" });
+
+  // Build map of agent display names that DID produce output
+  const outputs = Array.isArray(snap.outputs) ? snap.outputs : (Array.isArray(snap.specialist_outputs) ? snap.specialist_outputs : []);
+  const seenAgents = new Set();
+  outputs.forEach(o => {
+    const name = (o && o.agent) || "";
+    if (!name) return;
+    seenAgents.add(name);
+    updateAgentCard(name, "done", "");
+    populateAgentCard(name, o);
+    DAG.onEvent({ agent: name, status: "done" });
+  });
+
+  // Mark anything that didn't produce output as skipped (dynamic agent selection)
+  ["Market Analyst", "Financial Analyst", "Risk Analyst", "Competitive Analyst"].forEach(name => {
+    if (!seenAgents.has(name)) {
+      updateAgentCard(name, "skipped", "Not relevant to this query");
+      DAG.onEvent({ agent: name, type: "agent_skipped" });
+    }
+  });
+
+  // Debate panel + stash for PDF
+  window.__lastDebate = snap.debate || null;
+  if (snap.debate && snap.debate.conflict_topic) {
+    const debSec = document.getElementById("debate-section");
+    if (debSec) debSec.classList.remove("hidden");
+    const topicEl = document.getElementById("debate-topic");
+    if (topicEl) topicEl.textContent = "⚡ Conflict Detected: " + snap.debate.conflict_topic;
+    const turnsEl = document.getElementById("debate-turns");
+    if (turnsEl) {
+      turnsEl.innerHTML = "";
+      (snap.debate.debate || []).forEach(turn => {
+        const wrap = document.createElement("div");
+        wrap.className = "debate-turn";
+        const badgeColor = AGENT_BADGE_COLORS[turn.agent] || { bg: "rgba(148,163,184,0.15)", color: "#94a3b8" };
+        wrap.innerHTML =
+          `<span class="debate-badge" style="background:${badgeColor.bg};color:${badgeColor.color};border:1px solid ${badgeColor.color}33;">${_esc(turn.agent || "")}</span>` +
+          `<p class="debate-text">${_esc(turn.point || turn.verdict || "")}</p>`;
+        turnsEl.appendChild(wrap);
+      });
+    }
+    const debResEl = document.getElementById("debate-resolution");
+    if (debResEl && snap.debate.resolution) {
+      debResEl.classList.remove("hidden");
+      debResEl.innerHTML = `<span style="color:var(--success);margin-right:8px;">✓</span> ${_esc(snap.debate.resolution)}`;
+    }
+    DAG.onEvent({ type: "debate_resolved" });
+  }
+
+  // Critic + report
+  lastQuery = snap.query || "";
+  lastCritic = snap.critic || snap.critic_result || null;
+  if (lastCritic) {
+    showCriticResult(lastCritic);
+    if (lastCritic.status !== "APPROVED") {
+      document.getElementById("revision-banner").classList.remove("hidden");
+    }
+    DAG.onEvent({ agent: "Critic", status: "done" });
+  }
+
+  const report = snap.report || snap.final_report || "";
+  if (report) {
+    renderReport(report);
+    DAG.onEvent({ agent: "Synthesizer", status: "done" });
+  }
+
+  _logThought({ agent: "SYSTEM", status: "ready", message: "All panels restored from history" });
 }
 
 function _loadFromLocalStorage() {
@@ -1388,23 +1607,8 @@ function _checkResumeButton() {
 
 function resumeLastAnalysis() {
   const saved = _loadFromLocalStorage();
-  if (!saved || !saved.report) return;
-
-  lastQuery = saved.query || "";
-  lastCritic = saved.critic || null;
-  lastElapsed = 0;
-
-  document.getElementById("swarm-section").classList.remove("hidden");
-  document.getElementById("revision-banner").classList.add("hidden");
-
-  if (lastCritic) {
-    showCriticResult(lastCritic);
-    if (lastCritic.status !== "APPROVED") {
-      document.getElementById("revision-banner").classList.remove("hidden");
-    }
-  }
-  renderReport(saved.report);
-
+  if (!saved || !(saved.report || saved.final_report)) return;
+  _restoreSwarmState(saved);
   const btn = document.getElementById("resume-btn");
   if (btn) btn.classList.add("hidden");
 }

@@ -1192,3 +1192,7 @@ h2.section-title {
   color: var(--accent);
   background: rgba(var(--accent-rgb), 0.05);
 }
+
+.resume-btn:empty {
+  display: none;
+}

@@ -145,9 +145,16 @@ async def run_sk_validation_synthesis(
     )
 
     critic_result: dict = {}
-    async for message in group_chat.invoke_agent(critic_sk):
-        critic_result = _parse_critic(message.content or "")
-        break
+    _it = group_chat.invoke_agent(critic_sk)
+    try:
+        async for message in _it:
+            critic_result = _parse_critic(message.content or "")
+            break
+    finally:
+        try:
+            await _it.aclose()
+        except Exception:
+            pass
 
     # ── Revision loop (MAX_REVISIONS = 1) ──────────────────────────────────────
     if critic_result.get("status") == "NEEDS_REVISION":
@@ -203,9 +210,16 @@ async def run_sk_validation_synthesis(
         )
 
         new_critic: dict = {}
-        async for message in group_chat.invoke_agent(critic_sk):
-            new_critic = _parse_critic(message.content or "")
-            break
+        _it2 = group_chat.invoke_agent(critic_sk)
+        try:
+            async for message in _it2:
+                new_critic = _parse_critic(message.content or "")
+                break
+        finally:
+            try:
+                await _it2.aclose()
+            except Exception:
+                pass
 
         critic_result = new_critic
         critic_result["revision_exhausted"] = True
@@ -240,9 +254,16 @@ async def run_sk_validation_synthesis(
     )
 
     final_report = ""
-    async for message in group_chat.invoke_agent(synthesizer_sk):
-        final_report = message.content or ""
-        break
+    _it3 = group_chat.invoke_agent(synthesizer_sk)
+    try:
+        async for message in _it3:
+            final_report = message.content or ""
+            break
+    finally:
+        try:
+            await _it3.aclose()
+        except Exception:
+            pass
 
     await emit("Synthesizer", "done", "Report ready")
 

@@ -199,6 +199,13 @@ az role assignment create \
 # Wait for RBAC propagation before wiring KV refs (otherwise secret resolution fails)
 sleep 30
 
+# ── Configure Container App to use managed identity for ACR pulls ─────────────
+az containerapp registry set \
+  --name "$APP_NAME" \
+  --resource-group "$RESOURCE_GROUP" \
+  --server "${ACR_NAME}.azurecr.io" \
+  --identity system
+
 # ── Wire Container App secrets to Key Vault references ────────────────────────
 az containerapp secret set \
   --name "$APP_NAME" \

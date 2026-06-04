@@ -1,4 +1,4 @@
-﻿// â”€â”€ Theme (runs before DOM paint to avoid flicker) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Theme (runs before DOM paint to avoid flicker) ----------------------------
 (function initTheme() {
   const saved = localStorage.getItem("swarmiq-theme") || "dark";
   if (saved === "light") document.documentElement.setAttribute("data-theme", "light");
@@ -11,10 +11,10 @@ function toggleTheme() {
   else document.documentElement.removeAttribute("data-theme");
   localStorage.setItem("swarmiq-theme", next);
   const btn = document.getElementById("theme-toggle");
-  if (btn) btn.textContent = next === "light" ? "â˜€ï¸" : "ðŸŒ™";
+  if (btn) btn.textContent = next === "light" ? "☀️" : "🌙";
 }
 
-// â”€â”€ Example queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Example queries ----------------------------------------
 const EXAMPLE_QUERIES = [
   "Analyze Zepto as an investment opportunity in India",
   "Research Anthropic's competitive position in AI",
@@ -35,7 +35,7 @@ const EXAMPLE_QUERIES = [
   "Analyze Adani Group's debt profile and risk exposure",
   "Evaluate Mahindra's EV pivot vs Tata Motors",
   "Research PhonePe's UPI dominance and fintech ambitions",
-  "Assess Byju's collapse â€” what went wrong",
+  "Assess Byju's collapse — what went wrong",
   "Analyze CRED's monetisation model and unit economics",
   "Evaluate Razorpay's enterprise payments expansion",
   "Research Meesho's social commerce vs Flipkart",
@@ -93,7 +93,7 @@ function useExample(el) {
   input.focus();
 }
 
-// â”€â”€ Core state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Core state ----------------------------------------
 const SESSION_ID = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 const API_BASE = location.origin;
 const WS_BASE = (location.protocol === "https:" ? "wss:" : "ws:") + "//" + location.host;
@@ -125,13 +125,13 @@ let debateActive = false;
 const LAUNCH_READY_LABEL = "Launch Swarm \u2197";
 const LAUNCH_BUSY_LABEL = "Launching...";
 
-// â”€â”€ Auth state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Auth state ----------------------------------------
 let msalInstance = null;
 let currentUser = null;
 let authToken = null;
 let authConfig = null;
 
-// â”€â”€ Pipeline DAG controller â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Pipeline DAG controller ----------------------------------------
 const DAG = (() => {
   let specDone = new Set();
 
@@ -244,7 +244,7 @@ const DAG = (() => {
   };
 })();
 
-// â”€â”€ Timer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Timer ----------------------------------------
 function startTimer() {
   timerStart = performance.now();
   const el = document.getElementById("timer-value");
@@ -265,7 +265,7 @@ function stopTimer() {
   if (el) el.textContent = secs.toFixed(1) + "s";
 }
 
-// â”€â”€ Agent card rendering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Agent card rendering ----------------------------------------
 function clearErrors() {
   ["input-error", "swarm-error"].forEach(id => {
     const el = document.getElementById(id);
@@ -434,7 +434,7 @@ function handleCacheHit() {
   const names = ["Orchestrator","Market Analyst","Financial Analyst","Risk Analyst","Competitive Analyst","Critic"];
   names.forEach(n => updateAgentCard(n, "done", "Loaded from cache"));
   const el = document.getElementById("timer-value");
-  if (el) el.textContent = "âš¡ cached";
+  if (el) el.textContent = "⚡ cached";
 }
 
 function updateAgentCard(agentName, status, message) {
@@ -447,7 +447,7 @@ function updateAgentCard(agentName, status, message) {
 
   if (status === "done") {
     card.classList.add("done");
-    statusEl.textContent = "âœ“ Complete";
+    statusEl.textContent = "✓ Complete";
   } else if (status === "working" || status === "started" || status === "thinking") {
     card.classList.add("working");
     statusEl.textContent = message || status;
@@ -456,7 +456,7 @@ function updateAgentCard(agentName, status, message) {
   }
 }
 
-// â”€â”€ Critic result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Critic result ----------------------------------------
 function showCriticResult(critic) {
   document.getElementById("critic-section").classList.remove("hidden");
 
@@ -475,14 +475,14 @@ function showCriticResult(critic) {
   document.getElementById("critic-box").innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem;">
       <span class="critic-status ${badgeClass}">${badgeLabel}</span>
-      <span style="font-size:13px;color:var(--muted);">Confidence: ${critic.overall_confidence || "â€”"}</span>
+      <span style="font-size:13px;color:var(--muted);">Confidence: ${critic.overall_confidence || "—"}</span>
     </div>
     ${contradictionsHTML}
     <p style="font-size:13px;color:var(--muted);margin:0;">${critic.notes || ""}</p>
   `;
 }
 
-// â”€â”€ Revision flow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Revision flow ----------------------------------------
 function handleRevisionRequested(data) {
   const flagged = (data.flagged_agents || []).map(k => AGENT_DISPLAY_NAMES[k] || k);
   const issues = data.issues || [];
@@ -518,7 +518,7 @@ function handleRevisionRequested(data) {
 function handleRevisionComplete(data) {
   const newStatus = data.new_status || "APPROVED";
   const isApproved = newStatus === "APPROVED";
-  const icon = isApproved ? "âœ“" : "âœ—";
+  const icon = isApproved ? "✓" : "✗";
   const color = isApproved ? "var(--success)" : "var(--danger)";
   const note = isApproved ? "" : " (proceeding to synthesis)";
 
@@ -528,11 +528,11 @@ function handleRevisionComplete(data) {
     if (isApproved) pending.classList.add("complete");
     pending.innerHTML =
       `<span style="color:${color};margin-right:6px;">${icon}</span>` +
-      `Revision complete â€” Critic verdict: <strong>${newStatus}</strong>${note}`;
+      `Revision complete — Critic verdict: <strong>${newStatus}</strong>${note}`;
   }
 }
 
-// â”€â”€ Typewriter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Typewriter ----------------------------------------
 async function _typewriter(el, text, duration) {
   const chars = [...text];
   const delay = chars.length > 0 ? Math.max(8, Math.floor(duration / chars.length)) : 0;
@@ -542,7 +542,7 @@ async function _typewriter(el, text, duration) {
   }
 }
 
-// â”€â”€ Debate panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Debate panel ----------------------------------------
 function handleDebateTurn(data) {
   const section = document.getElementById("debate-section");
   const topicEl = document.getElementById("debate-topic");
@@ -553,7 +553,7 @@ function handleDebateTurn(data) {
     debateActive = true;
     if (section) section.classList.remove("hidden");
     if (panelEl) panelEl.classList.add("debating");
-    if (topicEl) topicEl.textContent = "âš¡ Conflict Detected: " + (data.conflict_topic || "");
+    if (topicEl) topicEl.textContent = "⚡ Conflict Detected: " + (data.conflict_topic || "");
     if (section) section.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
@@ -588,12 +588,12 @@ function handleDebateResolved(data) {
   if (resEl) {
     resEl.classList.remove("hidden");
     resEl.innerHTML =
-      `<span style="color:var(--success);margin-right:8px;">âœ“</span>` +
+      `<span style="color:var(--success);margin-right:8px;">✓</span>` +
       (data.resolution || "");
   }
 }
 
-// â”€â”€ Report rendering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Report rendering ----------------------------------------
 function renderReport(markdown) {
   reportText = markdown;
   document.getElementById("report-section").classList.remove("hidden");
@@ -610,7 +610,7 @@ function renderReport(markdown) {
   document.getElementById("report-section").scrollIntoView({ behavior: "smooth" });
 }
 
-// â”€â”€ Launch swarm â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Launch swarm ----------------------------------------
 async function launchSwarm() {
   const query = document.getElementById("query").value.trim();
   clearErrors();
@@ -675,6 +675,14 @@ async function launchSwarm() {
       return;
     }
 
+    // Any progress event proves the swarm is alive — clear any stale "already running" banner
+    // (covers the case where a previous session was already active server-side, but the
+    // existing run is still streaming back to us)
+    if (data.status === "working" || data.status === "started" || data.status === "done" || data.status === "thinking" ||
+        data.type === "agent_partial_result" || data.type === "debate_turn") {
+      clearErrors();
+    }
+
     if (data.status === "error" || data.type === "agent_error") {
       showError(data.message || "One agent failed, so the swarm is continuing with a fallback.", "swarm");
     }
@@ -719,11 +727,11 @@ async function launchSwarm() {
   };
 }
 
-// â”€â”€ Copy / PDF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Copy / PDF ----------------------------------------
 function copyReport() {
   navigator.clipboard.writeText(reportText);
   const btn = document.querySelector(".report-actions .download-btn");
-  btn.textContent = "Copied! âœ“";
+  btn.textContent = "Copied! ✓";
   setTimeout(() => {
     btn.textContent = "Copy Report â†—";
   }, 2000);
@@ -988,7 +996,7 @@ async function downloadPDF() {
 }
 
 // PHASE 4: Microsoft Entra auth via MSAL.js
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ----------------------------------------
 
 async function initAuth() {
   try {
@@ -998,7 +1006,7 @@ async function initAuth() {
 
     if (!authConfig.authEnabled) return;
     if (typeof msal === "undefined") {
-      console.warn("[Auth] MSAL.js not loaded â€” auth disabled");
+      console.warn("[Auth] MSAL.js not loaded — auth disabled");
       return;
     }
 
@@ -1124,9 +1132,9 @@ function _updateAuthUI() {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ----------------------------------------
 // PHASE 4: History panel
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ----------------------------------------
 
 function toggleHistory() {
   const panel = document.getElementById("history-panel");
@@ -1150,7 +1158,7 @@ function closeHistory() {
 async function loadHistory() {
   if (!authToken) return;
   const list = document.getElementById("history-list");
-  if (list) list.innerHTML = '<p class="history-empty">Loadingâ€¦</p>';
+  if (list) list.innerHTML = '<p class="history-empty">Loading…</p>';
   try {
     const resp = await fetch(API_BASE + "/history", {
       headers: { Authorization: "Bearer " + authToken },
@@ -1218,9 +1226,9 @@ async function loadAnalysis(analysisId) {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ----------------------------------------
 // PHASE 5: localStorage fallback for anonymous users
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ----------------------------------------
 
 const _LS_KEY = "swarmiq:last_analysis";
 
@@ -1247,7 +1255,7 @@ function _checkResumeButton() {
   if (!saved || !saved.report) return;
   const btn = document.getElementById("resume-btn");
   if (!btn) return;
-  const label = saved.query ? `Resume: "${saved.query.slice(0, 50)}${saved.query.length > 50 ? "â€¦" : ""}"` : "Resume last analysis";
+  const label = saved.query ? `Resume: "${saved.query.slice(0, 50)}${saved.query.length > 50 ? "…" : ""}"` : "Resume last analysis";
   btn.textContent = label;
   btn.classList.remove("hidden");
 }
@@ -1275,7 +1283,7 @@ function resumeLastAnalysis() {
   if (btn) btn.classList.add("hidden");
 }
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Helpers ----------------------------------------
 function _esc(str) {
   return String(str == null ? "" : str)
     .replace(/&/g, "&amp;")
@@ -1289,7 +1297,7 @@ function _fmtDate(isoStr) {
   try { return new Date(isoStr).toLocaleString(); } catch { return isoStr; }
 }
 
-// â”€â”€ DOMContentLoaded â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- DOMContentLoaded ----------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("query").addEventListener("keydown", e => {
     if (e.key === "Enter") launchSwarm();
@@ -1297,7 +1305,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const isLight = document.documentElement.getAttribute("data-theme") === "light";
   const tbtn = document.getElementById("theme-toggle");
-  if (tbtn) tbtn.textContent = isLight ? "â˜€ï¸" : "ðŸŒ™";
+  if (tbtn) tbtn.textContent = isLight ? "☀️" : "🌙";
 
   renderExampleChips();
   _checkResumeButton();

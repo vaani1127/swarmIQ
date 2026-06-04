@@ -1,3 +1,4 @@
+import asyncio
 import sys
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -5,7 +6,6 @@ if hasattr(sys.stdout, "reconfigure"):
 
 from backend.agents import (
     orchestrator_agent,
-    extract_company,
     market_analyst,
     financial_analyst,
     risk_analyst,
@@ -13,6 +13,7 @@ from backend.agents import (
     critic_agent,
     synthesis_agent,
 )
+from backend.orchestrator import extract_company
 from backend.tools import web_search, llm
 
 
@@ -26,7 +27,7 @@ def test_full_pipeline():
     tasks = orchestrator_agent(query)
     print(tasks)
 
-    company = extract_company(query)
+    company = asyncio.run(extract_company(query))
     print(f"\nExtracted company: {company}")
 
     print("\nTesting all 4 specialists (this takes ~30 seconds)...")

@@ -1,15 +1,7 @@
 import json
 import os
-import re
 
 from backend.tools import llm, web_search
-
-
-def extract_company(query: str) -> str:
-    matches = re.findall(r'\b([A-Z][a-zA-Z]{2,}(?:\s+[A-Z][a-zA-Z]{2,})*)\b', query)
-    if matches:
-        return matches[0]
-    return query[:30]
 
 
 def orchestrator_agent(query: str) -> dict:
@@ -146,6 +138,38 @@ def competitive_analyst(task: str, company: str) -> dict:
         }
 
 
+def debate_moderator_agent(specialist_outputs: list) -> dict:
+    slim = [
+        {
+            "agent": o.get("agent", ""),
+            "findings": o.get("findings", ""),
+            "key_metrics": o.get("key_metrics", []),
+        }
+        for o in specialist_outputs
+        if isinstance(o, dict)
+    ]
+    system = (
+        "You are a debate moderator for an AI research swarm. Given specialist analyst outputs, "
+        "identify the single most important CONFLICT or DISAGREEMENT between them. Generate a "
+        "structured debate where conflicting agents rebut each other, then the Critic issues a "
+        "verdict. Return ONLY valid JSON with keys: conflict_topic (string: one sentence "
+        "describing the core disagreement), debate (array of objects each with an 'agent' key "
+        "and either a 'point' key for analysts or a 'verdict' key for the Critic, each value "
+        "1-2 sentences), resolution (string: one-sentence final verdict the Synthesizer should "
+        "treat as authoritative). Only include agents with a genuine stake in the conflict — "
+        "2 to 4 agents is ideal. For the Critic entry use 'verdict' not 'point'."
+    )
+    response = llm(system, json.dumps(slim, indent=2), json_mode=True)
+    try:
+        return json.loads(response)
+    except (json.JSONDecodeError, TypeError):
+        return {
+            "conflict_topic": "Unable to identify a specific conflict.",
+            "debate": [],
+            "resolution": "No conflict resolution available.",
+        }
+
+
 def critic_agent(outputs: list) -> dict:
     serialized = json.dumps(outputs, indent=2)
     system = (
@@ -155,8 +179,10 @@ def critic_agent(outputs: list) -> dict:
         "3) Suspicious gaps (if a controversial company has zero risks found, that is "
         "suspicious), 4) Confidence mismatches. Return ONLY valid JSON with keys: status "
         "(APPROVED or NEEDS_REVISION), contradictions (list of strings or empty list), issues "
-        "(list of strings or empty list), overall_confidence (High/Medium/Low), notes (brief "
-        "summary string)"
+        "(list of strings describing specific problems), flagged_agents (list of agent short "
+        "names that produced problematic outputs — choose from: market, financial, risk, "
+        "competitive — empty list if status is APPROVED), overall_confidence "
+        "(High/Medium/Low), notes (brief summary string)"
     )
     response = llm(system, serialized, json_mode=True)
     try:
@@ -169,6 +195,7 @@ def critic_agent(outputs: list) -> dict:
             "status": "NEEDS_REVISION",
             "contradictions": [],
             "issues": ["Could not parse critic response."],
+            "flagged_agents": [],
             "overall_confidence": "Low",
             "notes": "Critic agent failed to produce a valid review.",
         }

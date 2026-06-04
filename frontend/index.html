@@ -5,11 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SwarmIQ</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js" defer></script>
 </head>
 <body>
-  <button id="theme-toggle" aria-label="Toggle theme" onclick="toggleTheme()">🌙</button>
+  <div id="warmup-overlay" class="warmup-overlay hidden" role="status" aria-live="polite">
+    <div class="warmup-panel">
+      <div class="warmup-spinner"></div>
+      <div>
+        <div class="warmup-title">SwarmIQ is warming up...</div>
+        <div class="warmup-copy">Checking the research swarm service.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP HEADER -->
+  <header class="app-header">
+    <span class="header-logo">Swarm<span class="accent">IQ</span></span>
+    <div class="header-actions">
+      <button id="history-btn" class="header-btn hidden" onclick="toggleHistory()">History</button>
+      <button id="signin-btn" class="header-btn signin-btn hidden" onclick="signIn()">Sign in with Microsoft</button>
+      <div id="user-info" class="user-info hidden">
+        <span id="user-name" class="user-name"></span>
+        <button class="header-btn signout-btn" onclick="signOut()">Sign out</button>
+      </div>
+      <button id="theme-toggle" aria-label="Toggle theme" onclick="toggleTheme()">🌙</button>
+    </div>
+  </header>
+
+  <!-- HISTORY PANEL (slides in from right) -->
+  <div id="history-overlay" class="history-overlay hidden" onclick="closeHistory()"></div>
+  <aside id="history-panel" class="history-panel hidden" aria-label="Analysis History">
+    <div class="history-panel-header">
+      <h3>Analysis History</h3>
+      <button class="history-close-btn" onclick="closeHistory()" aria-label="Close history">×</button>
+    </div>
+    <div id="history-list" class="history-list">
+      <p class="history-empty">Loading…</p>
+    </div>
+  </aside>
+
   <div class="container">
 
     <!-- HERO -->
@@ -20,13 +55,132 @@
         <input type="text" id="query" placeholder="e.g. Analyze Zepto as an investment opportunity in India" />
         <button id="launch-btn" onclick="launchSwarm()">Launch Swarm ↗</button>
       </div>
+      <div id="input-error" class="error-card input-error hidden" role="alert"></div>
       <div class="example-queries" id="example-queries"></div>
+
+      <!-- Sign-in banner (shown to anonymous users when auth is enabled) -->
+      <div id="signin-banner" class="signin-banner hidden">
+        Sign in with Microsoft to save your analysis history.
+        <button class="banner-signin-btn" onclick="signIn()">Sign in</button>
+      </div>
+
+      <!-- Resume button (shown when localStorage has a previous result) -->
+      <Button id="resume-btn" class="resume-btn hidden" onclick="resumeLastAnalysis()"></button>
     </section>
 
     <!-- LIVE AGENT ACTIVITY -->
     <div id="swarm-section" class="section hidden">
       <h2 class="section-title">Live Agent Activity</h2>
       <div class="timer-bar" id="timer-bar">Elapsed: <strong id="timer-value">0.0s</strong></div>
+      <div id="swarm-error" class="error-card hidden" role="alert"></div>
+
+      <!-- PIPELINE DAG -->
+      <div class="dag-wrap">
+        <svg id="pipeline-dag" viewBox="0 0 650 152" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <marker id="dag-arrow" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto">
+              <polygon points="0 0, 7 3, 0 6" class="dag-arrowhead"/>
+            </marker>
+            <path id="dp-orch"        d="M 110 76 L 145 76"/>
+            <path id="dp-market"      d="M 110 76 L 147 76 L 147 18 L 152 18"/>
+            <path id="dp-financial"   d="M 110 76 L 147 76 L 147 57 L 152 57"/>
+            <path id="dp-risk"        d="M 110 76 L 147 76 L 147 96 L 152 96"/>
+            <path id="dp-competitive" d="M 110 76 L 147 76 L 147 133 L 152 133"/>
+            <path id="dp-merge-market"      d="M 254 18 L 260 18 L 260 76 L 300 76"/>
+            <path id="dp-merge-financial"   d="M 254 57 L 260 57 L 260 76 L 300 76"/>
+            <path id="dp-merge-risk"        d="M 254 96 L 260 96 L 260 76 L 300 76"/>
+            <path id="dp-merge-competitive" d="M 254 133 L 260 133 L 260 76 L 300 76"/>
+            <path id="dp-deb-crit"    d="M 388 76 L 410 76"/>
+            <path id="dp-crit-synth"  d="M 487 76 L 508 76"/>
+          </defs>
+
+          <line x1="110" y1="76" x2="145" y2="76" class="dag-line" marker-end="url(#dag-arrow)"/>
+          <line x1="147" y1="18"  x2="147" y2="133" class="dag-bracket"/>
+          <line x1="147" y1="18"  x2="152" y2="18"  class="dag-line"/>
+          <line x1="147" y1="57"  x2="152" y2="57"  class="dag-line"/>
+          <line x1="147" y1="96"  x2="152" y2="96"  class="dag-line"/>
+          <line x1="147" y1="133" x2="152" y2="133" class="dag-line"/>
+          <line x1="254" y1="18"  x2="260" y2="18"  class="dag-line"/>
+          <line x1="254" y1="57"  x2="260" y2="57"  class="dag-line"/>
+          <line x1="254" y1="96"  x2="260" y2="96"  class="dag-line"/>
+          <line x1="254" y1="133" x2="260" y2="133" class="dag-line"/>
+          <line x1="260" y1="18"  x2="260" y2="133" class="dag-bracket"/>
+          <line x1="260" y1="76"  x2="300" y2="76"  class="dag-line" marker-end="url(#dag-arrow)"/>
+          <line x1="388" y1="76"  x2="412" y2="76"  class="dag-line" marker-end="url(#dag-arrow)"/>
+          <line x1="487" y1="76"  x2="510" y2="76"  class="dag-line" marker-end="url(#dag-arrow)"/>
+
+          <g id="dag-orch" class="dag-node">
+            <rect x="5"   y="58" width="105" height="36" rx="8" class="dag-rect"/>
+            <text x="57"  y="80" text-anchor="middle" class="dag-label">Orchestrator</text>
+          </g>
+
+          <g id="dag-market" class="dag-node">
+            <rect x="152" y="5"   width="102" height="26" rx="7" class="dag-rect"/>
+            <text x="203" y="22"  text-anchor="middle" class="dag-label dag-label-sm">Market</text>
+          </g>
+          <g id="dag-financial" class="dag-node">
+            <rect x="152" y="44"  width="102" height="26" rx="7" class="dag-rect"/>
+            <text x="203" y="61"  text-anchor="middle" class="dag-label dag-label-sm">Financial</text>
+          </g>
+          <g id="dag-risk" class="dag-node">
+            <rect x="152" y="83"  width="102" height="26" rx="7" class="dag-rect"/>
+            <text x="203" y="100" text-anchor="middle" class="dag-label dag-label-sm">Risk</text>
+          </g>
+          <g id="dag-competitive" class="dag-node">
+            <rect x="152" y="120" width="102" height="26" rx="7" class="dag-rect"/>
+            <text x="203" y="137" text-anchor="middle" class="dag-label dag-label-sm">Competitive</text>
+          </g>
+
+          <g id="dag-debate" class="dag-node dag-faint">
+            <rect x="300" y="58" width="88"  height="36" rx="8" class="dag-rect"/>
+            <text x="344" y="80" text-anchor="middle" class="dag-label">Debate</text>
+          </g>
+          <g id="dag-critic" class="dag-node dag-faint">
+            <rect x="412" y="58" width="75"  height="36" rx="8" class="dag-rect"/>
+            <text x="449" y="80" text-anchor="middle" class="dag-label">Critic</text>
+          </g>
+          <g id="dag-synthesizer" class="dag-node dag-faint">
+            <rect x="510" y="58" width="120" height="36" rx="8" class="dag-rect"/>
+            <text x="570" y="80" text-anchor="middle" class="dag-label">Synthesizer</text>
+          </g>
+
+          <g id="dag-dots-orch" class="dag-dots dag-purple">
+            <circle r="3"><animateMotion dur="0.5s" repeatCount="indefinite" begin="0s"   ><mpath href="#dp-orch"/></animateMotion></circle>
+            <circle r="3"><animateMotion dur="0.5s" repeatCount="indefinite" begin="0.25s"><mpath href="#dp-orch"/></animateMotion></circle>
+          </g>
+          <g id="dag-dots-market" class="dag-dots dag-blue">
+            <circle r="2.5"><animateMotion dur="0.8s" repeatCount="indefinite" begin="0s"  ><mpath href="#dp-market"/></animateMotion></circle>
+            <circle r="2.5"><animateMotion dur="0.8s" repeatCount="indefinite" begin="0.4s"><mpath href="#dp-market"/></animateMotion></circle>
+          </g>
+          <g id="dag-dots-financial" class="dag-dots dag-blue">
+            <circle r="2.5"><animateMotion dur="0.8s" repeatCount="indefinite" begin="0s"  ><mpath href="#dp-financial"/></animateMotion></circle>
+            <circle r="2.5"><animateMotion dur="0.8s" repeatCount="indefinite" begin="0.4s"><mpath href="#dp-financial"/></animateMotion></circle>
+          </g>
+          <g id="dag-dots-risk" class="dag-dots dag-blue">
+            <circle r="2.5"><animateMotion dur="0.8s" repeatCount="indefinite" begin="0s"  ><mpath href="#dp-risk"/></animateMotion></circle>
+            <circle r="2.5"><animateMotion dur="0.8s" repeatCount="indefinite" begin="0.4s"><mpath href="#dp-risk"/></animateMotion></circle>
+          </g>
+          <g id="dag-dots-competitive" class="dag-dots dag-blue">
+            <circle r="2.5"><animateMotion dur="0.8s" repeatCount="indefinite" begin="0s"  ><mpath href="#dp-competitive"/></animateMotion></circle>
+            <circle r="2.5"><animateMotion dur="0.8s" repeatCount="indefinite" begin="0.4s"><mpath href="#dp-competitive"/></animateMotion></circle>
+          </g>
+          <g id="dag-dots-merge" class="dag-dots dag-blue">
+            <circle r="2.7"><animateMotion dur="0.75s" repeatCount="indefinite" begin="0s"   ><mpath href="#dp-merge-market"/></animateMotion></circle>
+            <circle r="2.7"><animateMotion dur="0.75s" repeatCount="indefinite" begin="0.15s"><mpath href="#dp-merge-financial"/></animateMotion></circle>
+            <circle r="2.7"><animateMotion dur="0.75s" repeatCount="indefinite" begin="0.3s" ><mpath href="#dp-merge-risk"/></animateMotion></circle>
+            <circle r="2.7"><animateMotion dur="0.75s" repeatCount="indefinite" begin="0.45s"><mpath href="#dp-merge-competitive"/></animateMotion></circle>
+          </g>
+          <g id="dag-dots-deb-crit" class="dag-dots dag-amber">
+            <circle r="3"><animateMotion dur="0.35s" repeatCount="indefinite" begin="0s"   ><mpath href="#dp-deb-crit"/></animateMotion></circle>
+            <circle r="3"><animateMotion dur="0.35s" repeatCount="indefinite" begin="0.17s"><mpath href="#dp-deb-crit"/></animateMotion></circle>
+          </g>
+          <g id="dag-dots-crit-synth" class="dag-dots dag-green">
+            <circle r="3"><animateMotion dur="0.35s" repeatCount="indefinite" begin="0s"   ><mpath href="#dp-crit-synth"/></animateMotion></circle>
+            <circle r="3"><animateMotion dur="0.35s" repeatCount="indefinite" begin="0.17s"><mpath href="#dp-crit-synth"/></animateMotion></circle>
+          </g>
+        </svg>
+      </div>
+
       <div class="agents-grid" id="agents-grid">
 
         <div class="agent-card" data-agent="Orchestrator">
@@ -65,6 +219,18 @@
           <div class="agent-status">Idle</div>
         </div>
 
+      </div>
+
+      <div id="revision-log" class="revision-log"></div>
+    </div>
+
+    <!-- AGENT DELIBERATION -->
+    <div id="debate-section" class="section hidden">
+      <h2 class="section-title">Agent Deliberation</h2>
+      <div class="debate-panel" id="debate-panel">
+        <div class="debate-topic" id="debate-topic"></div>
+        <div class="debate-turns" id="debate-turns"></div>
+        <div class="debate-resolution hidden" id="debate-resolution"></div>
       </div>
     </div>
 

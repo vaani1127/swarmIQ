@@ -11,6 +11,10 @@ venv/
 env/
 
 # Secrets
+AZURE_SETUP.md
+DECK_SLIDE_OUTLINE.md
+REVIEW.html
+DEMO_VIDEO_SCRIPT.md
 .env
 .env.local
 *.key

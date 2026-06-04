@@ -139,11 +139,12 @@ def competitive_analyst(task: str, company: str) -> dict:
 
 
 def debate_moderator_agent(specialist_outputs: list) -> dict:
+    # Trim findings to keep the request under GitHub Models' 8000-token cap on gpt-4o-mini.
     slim = [
         {
             "agent": o.get("agent", ""),
-            "findings": o.get("findings", ""),
-            "key_metrics": o.get("key_metrics", []),
+            "findings": (o.get("findings", "") or "")[:1200],
+            "key_metrics": (o.get("key_metrics", []) or [])[:5],
         }
         for o in specialist_outputs
         if isinstance(o, dict)

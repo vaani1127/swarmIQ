@@ -14,7 +14,29 @@ load_dotenv()
 
 MAX_REVISIONS = 1
 
+# GitHub Models free tier caps the request body at ~8000 tokens for gpt-4o-mini.
+# We compact specialist outputs before passing them to SK chats so we stay well under.
+_FINDINGS_TRUNCATE = 1500  # chars per agent's findings field
+_SOURCES_KEEP = 3
+
 _executor = ThreadPoolExecutor(max_workers=4)
+
+
+def _compact_output(out: dict) -> dict:
+    """Shrink a specialist output dict for inclusion in SK prompts."""
+    if not isinstance(out, dict):
+        return {"agent": "Unknown", "findings": str(out)[:_FINDINGS_TRUNCATE]}
+    return {
+        "agent": out.get("agent", "Unknown"),
+        "confidence": out.get("confidence", "Medium"),
+        "findings": (out.get("findings", "") or "")[:_FINDINGS_TRUNCATE],
+        "key_metrics": (out.get("key_metrics", []) or [])[:5],
+        "sources": (out.get("sources", []) or [])[:_SOURCES_KEEP],
+    }
+
+
+def _compact_outputs(outs: list) -> list:
+    return [_compact_output(o) for o in outs]
 
 # Maps short critic keys → (task dict key, display name for emit)
 _AGENT_MAP: dict[str, tuple[str, str]] = {
@@ -134,7 +156,7 @@ async def run_sk_validation_synthesis(
     # ── First Critic pass ──────────────────────────────────────────────────────
     await emit("Critic", "thinking", "Running adversarial review via Semantic Kernel...")
 
-    _critic_prompt = f"Review these specialist research outputs:\n{json.dumps(current_outputs, indent=2)}"
+    _critic_prompt = f"Review these specialist research outputs:\n{json.dumps(_compact_outputs(current_outputs), indent=2)}"
     if debate_resolution:
         _critic_prompt += (
             f"\n\nDebate Resolution Context: The specialist agents previously debated and "
@@ -204,7 +226,7 @@ async def run_sk_validation_synthesis(
                 role=AuthorRole.USER,
                 content=(
                     "The flagged agents have revised their outputs. "
-                    f"Re-review all outputs:\n{json.dumps(current_outputs, indent=2)}"
+                    f"Re-review all outputs:\n{json.dumps(_compact_outputs(current_outputs), indent=2)}"
                 ),
             )
         )
@@ -238,14 +260,14 @@ async def run_sk_validation_synthesis(
     if revision_happened:
         synth_content = (
             f"Research Query: {query}\n\n"
-            f"Original Specialist Outputs:\n{json.dumps(original_outputs, indent=2)}\n\n"
-            f"Revised Specialist Outputs (post-Critic revision):\n{json.dumps(current_outputs, indent=2)}\n\n"
+            f"Original Specialist Outputs:\n{json.dumps(_compact_outputs(original_outputs), indent=2)}\n\n"
+            f"Revised Specialist Outputs (post-Critic revision):\n{json.dumps(_compact_outputs(current_outputs), indent=2)}\n\n"
             f"Critic Review:\n{json.dumps(critic_result, indent=2)}"
         )
     else:
         synth_content = (
             f"Research Query: {query}\n\n"
-            f"Specialist Outputs:\n{json.dumps(current_outputs, indent=2)}\n\n"
+            f"Specialist Outputs:\n{json.dumps(_compact_outputs(current_outputs), indent=2)}\n\n"
             f"Critic Review:\n{json.dumps(critic_result, indent=2)}"
         )
 

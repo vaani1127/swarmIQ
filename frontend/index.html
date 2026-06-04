@@ -181,6 +181,16 @@
         </svg>
       </div>
 
+      <!-- LIVE THOUGHTS LOG -->
+      <div class="thoughts-wrap">
+        <button type="button" class="thoughts-toggle" id="thoughts-toggle" onclick="toggleThoughts()">
+          <span class="thoughts-toggle-icon">▼</span>
+          <span class="thoughts-toggle-label">Live event stream</span>
+          <span class="thoughts-count" id="thoughts-count">0</span>
+        </button>
+        <div class="thoughts-panel" id="thoughts-panel" role="log" aria-live="polite"></div>
+      </div>
+
       <div class="agents-grid" id="agents-grid">
 
         <div class="agent-card" data-agent="Orchestrator">

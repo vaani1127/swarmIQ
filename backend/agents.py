@@ -4,24 +4,49 @@ import os
 from backend.tools import llm, web_search
 
 
+_ALL_AGENTS = ["market", "financial", "risk", "competitive"]
+
+
 def orchestrator_agent(query: str) -> dict:
     system = (
-        "You are a research orchestrator. Given a research query about a company or topic, "
-        "create 4 specific sub-tasks for specialist agents. Each sub-task should be a specific "
-        "search instruction. Return ONLY valid JSON with exactly these keys: market_task, "
-        "financial_task, risk_task, competitive_task. Each value is a specific research "
-        "instruction string."
+        "You are a research orchestrator for an AI investment-intelligence swarm with four "
+        "specialist agents: Market Analyst, Financial Analyst, Risk Analyst, Competitive "
+        "Analyst. Given a research query, do two things: "
+        "(1) Write a specific search task for EACH specialist. "
+        "(2) Decide which specialists are GENUINELY relevant for this query — typically 2 to 4 of them. "
+        "Examples of selection logic: a generic concept like 'What is RAG?' needs only market "
+        "and competitive; a private startup might not have meaningful public financials, so skip "
+        "financial; a deeply technical query may not need risk. When in doubt, include the agent — "
+        "this is for query-relevance, not cost-cutting. "
+        "Return ONLY valid JSON with keys: market_task, financial_task, risk_task, "
+        "competitive_task (each a search instruction string), and agents_needed (an array "
+        "containing 2-4 of: 'market', 'financial', 'risk', 'competitive')."
     )
     response = llm(system, query, json_mode=True)
     try:
-        return json.loads(response)
+        result = json.loads(response)
     except (json.JSONDecodeError, TypeError):
-        return {
+        result = {
             "market_task": query,
             "financial_task": query,
             "risk_task": query,
             "competitive_task": query,
+            "agents_needed": list(_ALL_AGENTS),
         }
+    # Normalise + safety-clamp agents_needed to a valid subset of size 2-4
+    raw = result.get("agents_needed")
+    if not isinstance(raw, list) or not raw:
+        result["agents_needed"] = list(_ALL_AGENTS)
+    else:
+        cleaned = [a.lower() for a in raw if isinstance(a, str) and a.lower() in _ALL_AGENTS]
+        # de-dupe while preserving order
+        seen = set()
+        cleaned = [a for a in cleaned if not (a in seen or seen.add(a))]
+        # require at least 2 agents — fall back to all if the LLM was too aggressive
+        if len(cleaned) < 2:
+            cleaned = list(_ALL_AGENTS)
+        result["agents_needed"] = cleaned
+    return result
 
 
 def market_analyst(task: str, company: str) -> dict:

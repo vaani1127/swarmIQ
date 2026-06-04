@@ -200,11 +200,37 @@ const DAG = (() => {
         return;
       }
 
+      if (type === "agents_selected") {
+        const selected = new Set((data.agents || []).map(a => a.toLowerCase()));
+        ["market", "financial", "risk", "competitive"].forEach(k => {
+          if (!selected.has(k)) {
+            setNode(k, "dag-skipped");
+            setDots(k, false);
+            specDone.add(k); // count as done for the merge gate
+          }
+        });
+        checkAllSpecsDone();
+        return;
+      }
+
+      if (type === "agent_skipped" || status === "skipped") {
+        const k = specKey(agent);
+        setNode(k, "dag-skipped");
+        setDots(k, false);
+        specDone.add(k);
+        checkAllSpecsDone();
+        return;
+      }
+
       if (agent === "Orchestrator") {
         if (status === "started") { setNode("orch", "dag-active-purple"); setDots("orch", true); }
         else if (status === "done") {
           setNode("orch", "dag-done"); setDots("orch", false);
-          ["market","financial","risk","competitive"].forEach(s => setDots(s, true));
+          ["market","financial","risk","competitive"].forEach(s => {
+            const el = nodeEl(s);
+            // Don't reanimate dots on skipped specialists
+            if (el && !el.classList.contains("dag-skipped")) setDots(s, true);
+          });
         }
         return;
       }
@@ -243,6 +269,86 @@ const DAG = (() => {
     },
   };
 })();
+
+// -- Live Thoughts event log ----------------------------------------
+let _thoughtsCount = 0;
+const _MAX_THOUGHTS = 120;
+
+function _resetThoughts() {
+  _thoughtsCount = 0;
+  const panel = document.getElementById("thoughts-panel");
+  if (panel) panel.innerHTML = `<div class="thoughts-empty">Waiting for the swarm to start…</div>`;
+  const count = document.getElementById("thoughts-count");
+  if (count) count.textContent = "0";
+  const wrap = document.querySelector(".thoughts-wrap");
+  if (wrap) wrap.classList.remove("collapsed");
+}
+
+function toggleThoughts() {
+  const wrap = document.querySelector(".thoughts-wrap");
+  if (wrap) wrap.classList.toggle("collapsed");
+}
+
+function _formatTime(d) {
+  const pad = n => String(n).padStart(2, "0");
+  const ms = String(d.getMilliseconds()).padStart(3, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${ms.slice(0, 2)}`;
+}
+
+function _thoughtIconAndClass(data) {
+  const status = data.status || "";
+  const type = data.type || "";
+  if (status === "error" || type === "agent_error") return ["✗", "thought-error"];
+  if (status === "done")                              return ["✓", "thought-done"];
+  if (status === "working" || status === "started")   return ["▶", "thought-working"];
+  if (status === "thinking")                          return ["◉", "thought-thinking"];
+  if (type === "debate_turn")                         return ["⚡", "thought-debate"];
+  if (type === "debate_resolved")                     return ["✓", "thought-done"];
+  if (type === "revision_requested")                  return ["↻", "thought-thinking"];
+  if (type === "revision_complete")                   return ["✓", "thought-done"];
+  if (type === "cache_hit")                           return ["♥", "thought-done"];
+  if (type === "agent_partial_result")                return ["•", "thought-done"];
+  if (type === "agents_selected")                     return ["⊕", "thought-system"];
+  if (data.agent === "SYSTEM")                        return ["◇", "thought-system"];
+  return ["·", ""];
+}
+
+function _logThought(data) {
+  const panel = document.getElementById("thoughts-panel");
+  if (!panel) return;
+
+  if (_thoughtsCount === 0) panel.innerHTML = "";
+
+  const [icon, cssClass] = _thoughtIconAndClass(data);
+  const agent = data.agent || "—";
+  const status = data.status || data.type || "";
+  let msg = data.message || "";
+  if (!msg && data.type === "debate_turn") msg = `${data.agent || ""}: ${(data.point || data.verdict || "").slice(0, 80)}`;
+  if (!msg && data.type === "agents_selected") msg = `selected: ${(data.agents || []).join(", ")}`;
+  if (!msg && data.type === "cache_hit") msg = "loaded from cache (24h)";
+  if (!msg && data.type === "revision_requested") msg = `revising: ${(data.flagged_agents || []).join(", ")}`;
+  msg = String(msg).slice(0, 140);
+
+  const row = document.createElement("div");
+  row.className = `thought-entry ${cssClass}`.trim();
+  row.innerHTML =
+    `<span class="thought-time">${_formatTime(new Date())}</span>` +
+    `<span class="thought-icon">${icon}</span>` +
+    `<span class="thought-agent">${agent}</span>` +
+    `<span class="thought-msg">${status}${msg ? " — " + msg.replace(/</g, "&lt;") : ""}</span>`;
+  panel.appendChild(row);
+
+  // Cap entries so the DOM doesn't grow unbounded on long sessions
+  while (panel.children.length > _MAX_THOUGHTS) panel.removeChild(panel.firstChild);
+
+  _thoughtsCount += 1;
+  const count = document.getElementById("thoughts-count");
+  if (count) count.textContent = String(_thoughtsCount);
+
+  // Auto-scroll to newest (only if user hasn't scrolled up)
+  const nearBottom = panel.scrollHeight - panel.scrollTop - panel.clientHeight < 50;
+  if (nearBottom) panel.scrollTop = panel.scrollHeight;
+}
 
 // -- Timer ----------------------------------------
 function startTimer() {
@@ -443,7 +549,7 @@ function updateAgentCard(agentName, status, message) {
 
   const statusEl = card.querySelector(".agent-status");
 
-  card.classList.remove("working", "done", "idle", "needs-revision");
+  card.classList.remove("working", "done", "idle", "needs-revision", "skipped");
 
   if (status === "done") {
     card.classList.add("done");
@@ -451,6 +557,9 @@ function updateAgentCard(agentName, status, message) {
   } else if (status === "working" || status === "started" || status === "thinking") {
     card.classList.add("working");
     statusEl.textContent = message || status;
+  } else if (status === "skipped") {
+    card.classList.add("skipped");
+    statusEl.textContent = "— Not relevant";
   } else {
     statusEl.textContent = message || status;
   }
@@ -646,6 +755,7 @@ async function launchSwarm() {
     if (details) details.remove();
   });
   DAG.reset();
+  _resetThoughts();
 
   document.getElementById("critic-section").classList.add("hidden");
   document.getElementById("report-section").classList.add("hidden");
@@ -682,6 +792,8 @@ async function launchSwarm() {
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
 
+    _logThought(data);
+
     if (data.agent === "SYSTEM" && data.status === "error") {
       handleFatalLaunchError(data.message || "The analysis failed before the swarm could finish.");
       return;
@@ -716,6 +828,8 @@ async function launchSwarm() {
       _saveToLocalStorage(data.report, data.critic, query);
     } else if (data.type === "cache_hit") {
       handleCacheHit();
+    } else if (data.type === "agent_skipped" || data.status === "skipped") {
+      updateAgentCard(data.agent, "skipped", data.message || "Not relevant to this query");
     } else if (data.type === "agent_partial_result") {
       updateAgentCard(data.agent, data.status, data.message);
       populateAgentCard(data.agent, data);
@@ -1323,6 +1437,7 @@ document.addEventListener("DOMContentLoaded", () => {
   _checkResumeButton();
   waitForServerHealth();
   initAuth();
+  _resetThoughts();
 
   const yearEl = document.getElementById("footer-year");
   if (yearEl) yearEl.textContent = new Date().getFullYear();

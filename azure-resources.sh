@@ -40,15 +40,19 @@ az role assignment create \
   --scope "$KV_ID"
 
 # Store application secrets — fill in real values before running
-az keyvault secret set --vault-name "$KV_NAME" --name "azure-openai-endpoint"        --value "https://REPLACE_ME.openai.azure.com/"
-az keyvault secret set --vault-name "$KV_NAME" --name "azure-openai-api-key"         --value "REPLACE_ME"
-az keyvault secret set --vault-name "$KV_NAME" --name "azure-openai-deployment"      --value "gpt-4o"
-az keyvault secret set --vault-name "$KV_NAME" --name "azure-openai-api-version"     --value "2024-02-01"
+# LLM inference (GitHub Models by default — student-tier friendly, free, Microsoft-hosted)
+az keyvault secret set --vault-name "$KV_NAME" --name "llm-base-url"                 --value "https://models.github.ai/inference"
+az keyvault secret set --vault-name "$KV_NAME" --name "llm-api-key"                  --value "REPLACE_ME_GITHUB_PAT"
+az keyvault secret set --vault-name "$KV_NAME" --name "llm-model"                    --value "openai/gpt-4o-mini"
+# Tavily web search
 az keyvault secret set --vault-name "$KV_NAME" --name "tavily-api-key"               --value "REPLACE_ME"
+# Session state + cache
 az keyvault secret set --vault-name "$KV_NAME" --name "redis-url"                    --value "redis://localhost:6379"
+# Optional: Entra External ID for sign-in (leave placeholders if not used)
 az keyvault secret set --vault-name "$KV_NAME" --name "azure-ad-tenant-id"           --value "REPLACE_ME"
 az keyvault secret set --vault-name "$KV_NAME" --name "azure-ad-client-id"           --value "REPLACE_ME"
 az keyvault secret set --vault-name "$KV_NAME" --name "azure-ad-client-secret"       --value "REPLACE_ME"
+# Optional: Cosmos DB for per-user history (leave placeholders to fall back to localStorage)
 az keyvault secret set --vault-name "$KV_NAME" --name "cosmos-db-connection-string"  --value "REPLACE_ME"
 az keyvault secret set --vault-name "$KV_NAME" --name "cosmos-db-database-name"      --value "swarmiq"
 
@@ -96,10 +100,9 @@ az containerapp secret set \
   --name "$APP_NAME" \
   --resource-group "$RESOURCE_GROUP" \
   --secrets \
-    "azure-openai-endpoint=keyvaultref:${KV_URI}/secrets/azure-openai-endpoint,identityref:system" \
-    "azure-openai-api-key=keyvaultref:${KV_URI}/secrets/azure-openai-api-key,identityref:system" \
-    "azure-openai-deployment=keyvaultref:${KV_URI}/secrets/azure-openai-deployment,identityref:system" \
-    "azure-openai-api-version=keyvaultref:${KV_URI}/secrets/azure-openai-api-version,identityref:system" \
+    "llm-base-url=keyvaultref:${KV_URI}/secrets/llm-base-url,identityref:system" \
+    "llm-api-key=keyvaultref:${KV_URI}/secrets/llm-api-key,identityref:system" \
+    "llm-model=keyvaultref:${KV_URI}/secrets/llm-model,identityref:system" \
     "tavily-api-key=keyvaultref:${KV_URI}/secrets/tavily-api-key,identityref:system" \
     "redis-url=keyvaultref:${KV_URI}/secrets/redis-url,identityref:system" \
     "azure-ad-tenant-id=keyvaultref:${KV_URI}/secrets/azure-ad-tenant-id,identityref:system" \
@@ -113,10 +116,9 @@ az containerapp update \
   --name "$APP_NAME" \
   --resource-group "$RESOURCE_GROUP" \
   --set-env-vars \
-    "AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint" \
-    "AZURE_OPENAI_API_KEY=secretref:azure-openai-api-key" \
-    "AZURE_OPENAI_DEPLOYMENT_NAME=secretref:azure-openai-deployment" \
-    "AZURE_OPENAI_API_VERSION=secretref:azure-openai-api-version" \
+    "LLM_BASE_URL=secretref:llm-base-url" \
+    "LLM_API_KEY=secretref:llm-api-key" \
+    "LLM_MODEL=secretref:llm-model" \
     "TAVILY_API_KEY=secretref:tavily-api-key" \
     "REDIS_URL=secretref:redis-url" \
     "AZURE_AD_TENANT_ID=secretref:azure-ad-tenant-id" \

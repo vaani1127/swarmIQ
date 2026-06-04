@@ -4,9 +4,10 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 
 from dotenv import load_dotenv
+from openai import AsyncOpenAI
 from semantic_kernel import Kernel
 from semantic_kernel.agents import AgentGroupChat, ChatCompletionAgent
-from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
+from semantic_kernel.connectors.ai.open_ai import OpenAIChatCompletion
 from semantic_kernel.contents import AuthorRole, ChatMessageContent
 
 load_dotenv()
@@ -53,12 +54,22 @@ async def _run_in_thread(fn, *args):
 
 
 def _build_kernel() -> Kernel:
+    """
+    Build a Semantic Kernel wired to an OpenAI-compatible inference endpoint.
+    Defaults to GitHub Models (free, Microsoft-hosted). Override via env vars to
+    swap to Azure OpenAI, OpenAI direct, or any other compatible endpoint.
+    """
+    base_url = os.getenv("LLM_BASE_URL", "https://models.github.ai/inference")
+    api_key = os.getenv("LLM_API_KEY") or os.getenv("GITHUB_TOKEN")
+    model_id = os.getenv("LLM_MODEL", "openai/gpt-4o-mini")
+
+    async_client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+
     kernel = Kernel()
     kernel.add_service(
-        AzureChatCompletion(
-            deployment_name=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
-            endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+        OpenAIChatCompletion(
+            ai_model_id=model_id,
+            async_client=async_client,
         )
     )
     return kernel

@@ -30,10 +30,13 @@ Once all specialists finish, the **Debate Moderator** scans for contradictions b
 
 | Tool | How We Use It | Why It Matters |
 |---|---|---|
-| **Azure OpenAI** (gpt-4o deployment) | Powers all 7 agents — orchestration, research, debate, critique, and synthesis | Microsoft-first AI stack; enterprise SLA, data residency guarantees |
-| **Semantic Kernel** v1.x | `AgentGroupChat` orchestrates the Critic ↔ Synthesizer exchange; `ChatCompletionAgent` wraps each SK agent with structured instructions | Production-grade agentic framework — not a hand-rolled loop |
+| **GitHub Models** (`openai/gpt-4o-mini`) | Inference layer — powers all 7 agents via the OpenAI-compatible endpoint at `https://models.github.ai/inference`. GitHub is a Microsoft subsidiary; same underlying Azure OpenAI infrastructure, free student-tier-friendly access via a GitHub PAT | Microsoft-owned inference, no Azure OpenAI quota hurdle, drop-in swap to direct Azure OpenAI by changing one env var (`LLM_BASE_URL`) |
+| **Microsoft Foundry** | Azure OpenAI / Foundry resource provisioned in the `swarmiq-rg` resource group as the production-grade fallback when GitHub Models rate-limits become a constraint. Switching is a config change, not a code change | Demonstrates the Microsoft inference path is wired and ready; we ship on free-tier GitHub Models for the hackathon while keeping the enterprise endpoint provisioned |
+| **Semantic Kernel** v1.x | `AgentGroupChat` orchestrates the Critic ↔ Synthesizer exchange; `ChatCompletionAgent` wraps each SK agent with structured instructions. The kernel's chat service is configured with a custom `AsyncOpenAI` client so it works against any OpenAI-compatible endpoint | Production-grade agentic framework — not a hand-rolled loop; transparent to whichever inference endpoint is wired |
 | **Azure Cosmos DB** | Stores per-user analysis history (MongoDB-compatible API, accessed via Motor async driver) | Serverless, globally distributed, scales to zero — no cold-start cost |
 | **Azure Container Apps** | Production hosting target — two app replicas, shared Redis sidecar, auto-scaling to zero | No infrastructure management; built-in HTTPS, custom domains, scaling |
+| **Azure Key Vault** | Stores all secrets (LLM token, Tavily, Redis URL, Entra creds, Cosmos string); the Container App reads them via managed-identity Key Vault references — no secrets in git, no secrets in env files in CI | Zero-trust secret hygiene; rotating a secret = one CLI call, no redeploy |
+| **GitHub Actions** | CI/CD pipeline at `.github/workflows/azure-deploy.yml` builds the image, pushes to ACR, updates the Container App revision on every push to `main` | Hands-off deploy; the live URL stays in sync with the repo |
 | **Microsoft Entra External ID** | MSAL.js popup auth; ID tokens validated server-side via JWKS; `oid` claim used as stable user key | Standards-based identity with no password management or user table |
 
 ---
@@ -58,7 +61,7 @@ graph TD
 1. Browser opens a per-session WebSocket (`/ws/{sid}`)
 2. `POST /analyze` fires; FastAPI dispatches the swarm pipeline
 3. Orchestrator decomposes the query → 4 specialist tasks in parallel (`asyncio.gather`)
-4. Each specialist: 2× Tavily web searches → Azure OpenAI reasoning → structured JSON result
+4. Each specialist: 2× Tavily web searches → LLM reasoning (GitHub Models gpt-4o-mini) → structured JSON result
 5. Debate Moderator scans for conflicts → emits debate turns over WebSocket
 6. Semantic Kernel `AgentGroupChat`: Critic reviews → optional revision loop → Synthesizer writes report
 7. Full result cached in Redis for 24 hours (keyed by `sha256(query)`)
@@ -70,11 +73,11 @@ graph TD
 
 | Agent | Swarm Taxonomy | Responsibility |
 |---|---|---|
-| **Orchestrator** | Planner | Reads the raw query; returns four targeted sub-task strings for the specialists via Azure OpenAI (JSON mode) |
-| **Market Analyst** | Retriever + Executor | Tavily search (market size, growth, positioning) → Azure OpenAI analysis → `{findings, key_metrics, sources, confidence}` |
-| **Financial Analyst** | Retriever + Executor | Tavily search (funding, revenue, burn, valuation) → Azure OpenAI analysis → structured JSON |
-| **Risk Analyst** | Retriever + Executor | Tavily search (lawsuits, regulation, controversies) → Azure OpenAI analysis → `{risks, overall_risk, confidence}` |
-| **Competitive Analyst** | Retriever + Executor | Tavily search (competitors, market position, moats) → Azure OpenAI analysis → `{competitors, competitive_position}` |
+| **Orchestrator** | Planner | Reads the raw query; returns four targeted sub-task strings for the specialists via gpt-4o-mini (JSON mode) |
+| **Market Analyst** | Retriever + Executor | Tavily search (market size, growth, positioning) → LLM analysis → `{findings, key_metrics, sources, confidence}` |
+| **Financial Analyst** | Retriever + Executor | Tavily search (funding, revenue, burn, valuation) → LLM analysis → structured JSON |
+| **Risk Analyst** | Retriever + Executor | Tavily search (lawsuits, regulation, controversies) → LLM analysis → `{risks, overall_risk, confidence}` |
+| **Competitive Analyst** | Retriever + Executor | Tavily search (competitors, market position, moats) → LLM analysis → `{competitors, competitive_position}` |
 | **Debate Moderator** | Self-Organization | Scans all four specialist outputs for contradictions; runs structured debate turns until resolution; result passed to Critic |
 | **Critic** | Validator | Semantic Kernel `ChatCompletionAgent`; adversarial JSON review; triggers targeted revision loop (max 1 pass) if `NEEDS_REVISION` |
 | **Synthesizer** | Reporter | Semantic Kernel `ChatCompletionAgent`; writes final 8-section markdown report with confidence scores and agent attribution |
@@ -99,8 +102,10 @@ graph TD
 
 - Python 3.11+
 - Docker + Docker Compose (recommended for local run)
-- An **Azure OpenAI** resource with a `gpt-4o` (or `gpt-4`) deployment
+- A **GitHub Personal Access Token** with the `Models: Read-only` scope ([generate one here](https://github.com/settings/tokens?type=beta) → Permissions → Account → Models). This is the LLM inference credential by default.
 - A **Tavily** API key (free at [app.tavily.com](https://app.tavily.com))
+
+> Optional: an **Azure OpenAI / Foundry** deployment if you want to swap to direct Azure inference instead of GitHub Models — set `LLM_BASE_URL=https://YOUR-RESOURCE.openai.azure.com/openai/v1` and `LLM_MODEL=YOUR-DEPLOYMENT-NAME` in `.env`. No code change needed.
 
 ### Option A — Docker Compose (recommended)
 
@@ -113,7 +118,7 @@ cd swarmIQ
 
 # 2. Create your .env file
 cp .env.example .env
-# Edit .env — fill in AZURE_OPENAI_* and TAVILY_API_KEY at minimum
+# Edit .env — fill in LLM_API_KEY (your GitHub PAT) and TAVILY_API_KEY at minimum
 # Entra and Cosmos DB vars are optional; app works fully without them
 
 # 3. Run
@@ -163,10 +168,10 @@ python -m backend.main
 
 | Variable | Required | Description | Where to get it |
 |---|---|---|---|
-| `AZURE_OPENAI_ENDPOINT` | **Yes** | Your Azure OpenAI resource URL | Azure Portal → your OpenAI resource → Keys and Endpoint |
-| `AZURE_OPENAI_API_KEY` | **Yes** | Azure OpenAI API key | Azure Portal → your OpenAI resource → Keys and Endpoint |
-| `AZURE_OPENAI_DEPLOYMENT_NAME` | **Yes** | Name of your gpt-4o deployment | Azure Portal → Azure OpenAI → Deployments |
-| `AZURE_OPENAI_API_VERSION` | **Yes** | API version (e.g. `2024-02-01`) | [Azure OpenAI API versions](https://learn.microsoft.com/azure/ai-services/openai/reference) |
+| `LLM_BASE_URL` | **Yes** | OpenAI-compatible inference endpoint. Default: `https://models.github.ai/inference` (GitHub Models). For Azure OpenAI use `https://YOUR-RESOURCE.openai.azure.com/openai/v1` | Default is fine for GitHub Models; otherwise your resource URL |
+| `LLM_API_KEY` | **Yes** | Inference credential. For GitHub Models: a GitHub PAT with `Models: Read-only` scope. For Azure OpenAI: the resource API key | [GitHub PAT settings](https://github.com/settings/tokens?type=beta) or Azure Portal → Keys and Endpoint |
+| `LLM_MODEL` | **Yes** | Model identifier. Default: `openai/gpt-4o-mini`. For Azure OpenAI use your deployment name | GitHub Models marketplace or Azure OpenAI deployments page |
+| `GITHUB_TOKEN` | Optional | Alias accepted as a fallback for `LLM_API_KEY` (some CI runners set this automatically) | Same as `LLM_API_KEY` |
 | `TAVILY_API_KEY` | **Yes** | Web search API key | [app.tavily.com](https://app.tavily.com) — free, 1 000 searches/month |
 | `REDIS_URL` | **Yes** | Redis connection URL | `redis://localhost:6379` locally; set automatically by docker-compose |
 | `AZURE_AD_TENANT_ID` | Optional | Entra tenant ID (enables auth) | Azure Portal → Microsoft Entra ID → Overview |
@@ -196,7 +201,7 @@ python -m backend.main
 |---|---|---|
 | **GitHub Copilot** | Team IDE assistant | Code completion and small in-editor implementation suggestions during development |
 | **Claude Code** (Anthropic) | claude-sonnet-4-6 | Primary development assistant — architecture design, agent implementation, Semantic Kernel integration, auth/Cosmos DB plumbing, frontend auth + history UI, README |
-| **Azure OpenAI / gpt-4o** | 2024-02-01 API | Runtime — powers all 7 agents inside SwarmIQ itself (not used to write SwarmIQ's code) |
+| **GitHub Models** (`openai/gpt-4o-mini`) | OpenAI-compatible API at `https://models.github.ai/inference` | Runtime LLM — powers all 7 agents inside SwarmIQ itself (not used to write SwarmIQ's code). Microsoft-owned inference, OpenAI-compatible, drop-in swap to direct Azure OpenAI via `LLM_BASE_URL` env var |
 
 ---
 

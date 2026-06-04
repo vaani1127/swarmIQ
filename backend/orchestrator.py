@@ -133,6 +133,7 @@ async def run_swarm(query: str, emit, session_id: str = "", redis_client=None) -
             finding = result.get("findings", "") if isinstance(result, dict) else str(result)
             key_metrics = result.get("key_metrics", []) if isinstance(result, dict) else []
             confidence = result.get("confidence", "Medium") if isinstance(result, dict) else "Medium"
+            sources = result.get("sources", []) if isinstance(result, dict) else []
             await emit(
                 name, "done", finding[:80] + "...",
                 type="agent_partial_result",
@@ -140,6 +141,7 @@ async def run_swarm(query: str, emit, session_id: str = "", redis_client=None) -
                 key_metrics=(key_metrics[:5] if isinstance(key_metrics, list) else []),
                 confidence=confidence,
                 findings_preview=finding[:200],
+                sources=(sources[:3] if isinstance(sources, list) else []),
             )
             logger.info(f"[{session_id}] [{name}] complete")
             outputs_map[name] = result

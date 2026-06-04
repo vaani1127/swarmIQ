@@ -1,15 +1,7 @@
 import json
 import os
-import re
 
 from backend.tools import llm, web_search
-
-
-def extract_company(query: str) -> str:
-    matches = re.findall(r'\b([A-Z][a-zA-Z]{2,}(?:\s+[A-Z][a-zA-Z]{2,})*)\b', query)
-    if matches:
-        return matches[0]
-    return query[:30]
 
 
 def orchestrator_agent(query: str) -> dict:

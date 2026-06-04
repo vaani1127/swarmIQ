@@ -5,11 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SwarmIQ</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js" defer></script>
 </head>
 <body>
+  <div id="warmup-overlay" class="warmup-overlay hidden" role="status" aria-live="polite">
+    <div class="warmup-panel">
+      <div class="warmup-spinner"></div>
+      <div>
+        <div class="warmup-title">SwarmIQ is warming up...</div>
+        <div class="warmup-copy">Checking the research swarm service.</div>
+      </div>
+    </div>
+  </div>
 
   <!-- APP HEADER -->
   <header class="app-header">
@@ -47,6 +55,7 @@
         <input type="text" id="query" placeholder="e.g. Analyze Zepto as an investment opportunity in India" />
         <button id="launch-btn" onclick="launchSwarm()">Launch Swarm ↗</button>
       </div>
+      <div id="input-error" class="error-card input-error hidden" role="alert"></div>
       <div class="example-queries" id="example-queries"></div>
 
       <!-- Sign-in banner (shown to anonymous users when auth is enabled) -->
@@ -56,13 +65,14 @@
       </div>
 
       <!-- Resume button (shown when localStorage has a previous result) -->
-      <button id="resume-btn" class="resume-btn hidden" onclick="resumeLastAnalysis()"></button>
+      <Button id="resume-btn" class="resume-btn hidden" onclick="resumeLastAnalysis()"></button>
     </section>
 
     <!-- LIVE AGENT ACTIVITY -->
     <div id="swarm-section" class="section hidden">
       <h2 class="section-title">Live Agent Activity</h2>
       <div class="timer-bar" id="timer-bar">Elapsed: <strong id="timer-value">0.0s</strong></div>
+      <div id="swarm-error" class="error-card hidden" role="alert"></div>
 
       <!-- PIPELINE DAG -->
       <div class="dag-wrap">
@@ -72,11 +82,14 @@
               <polygon points="0 0, 7 3, 0 6" class="dag-arrowhead"/>
             </marker>
             <path id="dp-orch"        d="M 110 76 L 145 76"/>
-            <path id="dp-market"      d="M 152 18 L 254 18"/>
-            <path id="dp-financial"   d="M 152 57 L 254 57"/>
-            <path id="dp-risk"        d="M 152 96 L 254 96"/>
-            <path id="dp-competitive" d="M 152 133 L 254 133"/>
-            <path id="dp-merge"       d="M 260 76 L 298 76"/>
+            <path id="dp-market"      d="M 110 76 L 147 76 L 147 18 L 152 18"/>
+            <path id="dp-financial"   d="M 110 76 L 147 76 L 147 57 L 152 57"/>
+            <path id="dp-risk"        d="M 110 76 L 147 76 L 147 96 L 152 96"/>
+            <path id="dp-competitive" d="M 110 76 L 147 76 L 147 133 L 152 133"/>
+            <path id="dp-merge-market"      d="M 254 18 L 260 18 L 260 76 L 300 76"/>
+            <path id="dp-merge-financial"   d="M 254 57 L 260 57 L 260 76 L 300 76"/>
+            <path id="dp-merge-risk"        d="M 254 96 L 260 96 L 260 76 L 300 76"/>
+            <path id="dp-merge-competitive" d="M 254 133 L 260 133 L 260 76 L 300 76"/>
             <path id="dp-deb-crit"    d="M 388 76 L 410 76"/>
             <path id="dp-crit-synth"  d="M 487 76 L 508 76"/>
           </defs>
@@ -152,8 +165,10 @@
             <circle r="2.5"><animateMotion dur="0.8s" repeatCount="indefinite" begin="0.4s"><mpath href="#dp-competitive"/></animateMotion></circle>
           </g>
           <g id="dag-dots-merge" class="dag-dots dag-blue">
-            <circle r="3"><animateMotion dur="0.4s" repeatCount="indefinite" begin="0s"  ><mpath href="#dp-merge"/></animateMotion></circle>
-            <circle r="3"><animateMotion dur="0.4s" repeatCount="indefinite" begin="0.2s"><mpath href="#dp-merge"/></animateMotion></circle>
+            <circle r="2.7"><animateMotion dur="0.75s" repeatCount="indefinite" begin="0s"   ><mpath href="#dp-merge-market"/></animateMotion></circle>
+            <circle r="2.7"><animateMotion dur="0.75s" repeatCount="indefinite" begin="0.15s"><mpath href="#dp-merge-financial"/></animateMotion></circle>
+            <circle r="2.7"><animateMotion dur="0.75s" repeatCount="indefinite" begin="0.3s" ><mpath href="#dp-merge-risk"/></animateMotion></circle>
+            <circle r="2.7"><animateMotion dur="0.75s" repeatCount="indefinite" begin="0.45s"><mpath href="#dp-merge-competitive"/></animateMotion></circle>
           </g>
           <g id="dag-dots-deb-crit" class="dag-dots dag-amber">
             <circle r="3"><animateMotion dur="0.35s" repeatCount="indefinite" begin="0s"   ><mpath href="#dp-deb-crit"/></animateMotion></circle>

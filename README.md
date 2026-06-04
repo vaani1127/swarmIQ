@@ -83,7 +83,7 @@ graph TD
 
 ## Live Demo
 
-**Deployed App:** `https://swarmiq.azurecontainerapps.io` *(update before submission)*
+**Deployed App:** `https://swarmiq.azurecontainerapps.io` *(placeholder - replace with the actual Azure Container Apps URL before submission)*
 
 **No login required** — anonymous users get the full research experience. Sign in with Microsoft to unlock analysis history.
 
@@ -104,7 +104,7 @@ graph TD
 
 ### Option A — Docker Compose (recommended)
 
-Runs two app replicas + Redis in one command. No Python environment needed.
+Runs the app + Redis in one command. No Python environment needed.
 
 ```bash
 # 1. Clone
@@ -183,6 +183,7 @@ python -m backend.main
 
 | Name | Role | GitHub |
 |---|---|---|
+| Dhruv Goyal | Product, Azure deployment, demo narrative, submission operations | [@DhruvGoyal404](https://github.com/DhruvGoyal404) |
 | Vaani Prashar | Full-stack — agent architecture, Semantic Kernel integration, frontend | [@vaani1127](https://github.com/vaani1127) |
 
 ---
@@ -193,6 +194,7 @@ python -m backend.main
 
 | Tool | Version | How it was used |
 |---|---|---|
+| **GitHub Copilot** | Team IDE assistant | Code completion and small in-editor implementation suggestions during development |
 | **Claude Code** (Anthropic) | claude-sonnet-4-6 | Primary development assistant — architecture design, agent implementation, Semantic Kernel integration, auth/Cosmos DB plumbing, frontend auth + history UI, README |
 | **Azure OpenAI / gpt-4o** | 2024-02-01 API | Runtime — powers all 7 agents inside SwarmIQ itself (not used to write SwarmIQ's code) |
 

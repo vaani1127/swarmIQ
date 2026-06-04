@@ -1,11 +1,11 @@
 openai>=1.30.0
 redis>=5.0.0
-semantic-kernel>=1.0.0
+semantic-kernel==1.42.0
 slowapi>=0.1.9
 tavily-python==0.7.25
 fastapi==0.136.3
 uvicorn==0.48.0
-websockets==16.0
+websockets==15.0.1
 python-multipart==0.0.29
 aiofiles==25.1.0
 python-dotenv==1.2.2

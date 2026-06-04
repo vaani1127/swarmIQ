@@ -42,17 +42,8 @@ body {
   color: var(--text);
   font-family: system-ui, sans-serif;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  padding-bottom: 56px; /* room for fixed footer */
   transition: background 0.2s, color 0.2s;
-}
-
-body > .container {
-  flex: 1 0 auto;
-}
-
-body > .app-footer {
-  flex-shrink: 0;
 }
 
 .warmup-overlay {
@@ -504,7 +495,7 @@ h2.section-title {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 @keyframes pulse-blue {
@@ -1010,7 +1001,7 @@ h2.section-title {
 }
 
 .history-panel.hidden {
-  display: none;
+  display: none !important;
 }
 
 @keyframes slideInRight {
@@ -1206,19 +1197,25 @@ h2.section-title {
 /* -- App footer ---------------------------------------- */
 
 .app-footer {
-  margin-top: 3rem;
-  padding: 18px 16px 24px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding: 12px 16px;
   text-align: center;
   font-size: 12px;
   color: var(--muted);
   border-top: 1px solid var(--border);
-  background: transparent;
+  background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
   gap: 8px;
   letter-spacing: 0.01em;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
 .app-footer strong {

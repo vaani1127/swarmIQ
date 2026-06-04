@@ -1246,7 +1246,15 @@ async function initAuth() {
         authority: authConfig.authority,
         redirectUri: location.origin,
       },
-      cache: { cacheLocation: "sessionStorage" },
+      // Use localStorage so the session is shared across tabs/windows on the same
+      // origin. sessionStorage (the default) is scoped per-tab, causing the
+      // "logged in on tab A, signed out on tab B" UX. storeAuthStateInCookie
+      // handles Safari ITP / older browsers that throttle localStorage.
+      cache: {
+        cacheLocation: "localStorage",
+        storeAuthStateInCookie: true,
+        temporaryCacheLocation: "localStorage",
+      },
     });
     await msalInstance.initialize();
 
@@ -1258,6 +1266,22 @@ async function initAuth() {
       // Show sign-in option now that auth is confirmed available
       _showSignInOption();
     }
+
+    // Cross-tab sync — when another tab signs in/out, MSAL writes to localStorage
+    // and the browser dispatches a 'storage' event in every other tab. Re-check
+    // accounts to keep the UI in sync without forcing a manual refresh.
+    window.addEventListener("storage", async (ev) => {
+      if (!ev.key || !ev.key.startsWith("msal.")) return;
+      const updated = msalInstance.getAllAccounts();
+      if (updated.length > 0 && !currentUser) {
+        await _refreshTokenForAccount(updated[0]);
+      } else if (updated.length === 0 && currentUser) {
+        authToken = null;
+        currentUser = null;
+        _updateAuthUI();
+        _showSignInOption();
+      }
+    });
   } catch (e) {
     console.warn("[Auth] init failed:", e);
   }

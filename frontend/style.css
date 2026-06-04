@@ -42,7 +42,17 @@ body {
   color: var(--text);
   font-family: system-ui, sans-serif;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   transition: background 0.2s, color 0.2s;
+}
+
+body > .container {
+  flex: 1 0 auto;
+}
+
+body > .app-footer {
+  flex-shrink: 0;
 }
 
 .warmup-overlay {

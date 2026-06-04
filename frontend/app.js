@@ -503,7 +503,7 @@ function handleRevisionRequested(data) {
   const entry = document.createElement("div");
   entry.className = "revision-entry";
   entry.id = "revision-entry-pending";
-  entry.innerHTML = `<span style="color:var(--danger);margin-right:6px;">âŸ³</span>${label}`;
+  entry.innerHTML = `<span style="color:var(--danger);margin-right:6px;">⟳</span>${label}`;
   if (issues.length) {
     const detail = document.createElement("div");
     detail.style.cssText = "font-size:11px;opacity:0.7;margin-top:3px;";
@@ -733,7 +733,7 @@ function copyReport() {
   const btn = document.querySelector(".report-actions .download-btn");
   btn.textContent = "Copied! ✓";
   setTimeout(() => {
-    btn.textContent = "Copy Report â†—";
+    btn.textContent = "Copy Report ↗";
   }, 2000);
 }
 

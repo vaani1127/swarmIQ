@@ -37,6 +37,10 @@
   padding: 0;
 }
 
+html {
+  overflow-x: hidden; /* prevent html-level horizontal scroll when body clips overflow */
+}
+
 body {
   background: var(--bg);
   color: var(--text);

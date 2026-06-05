@@ -15,8 +15,9 @@ load_dotenv()
 MAX_REVISIONS = 1
 
 # GitHub Models free tier caps the request body at ~8000 tokens for gpt-4o-mini.
-# We compact specialist outputs before passing them to SK chats so we stay well under.
-_FINDINGS_TRUNCATE = 1500  # chars per agent's findings field
+# We compact specialist outputs before passing them to SK chats to stay well under that budget.
+# Truncation is char-based (~4 chars/token for English) — not an exact token count.
+_FINDINGS_TRUNCATE = 1500  # chars per agent's findings field (~375 tokens at 4 chars/token)
 _SOURCES_KEEP = 3
 
 _executor = ThreadPoolExecutor(max_workers=4)

@@ -166,6 +166,15 @@ body {
   overflow-x: auto;
   max-width: 100%;
   margin: 0 auto;
+  /* Hide scrollbar — strip still scrolls via touch/wheel, just visually clean */
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* old IE/Edge */
+}
+
+.how-it-works-strip::-webkit-scrollbar {
+  display: none;                /* Chrome/Safari/Edge */
+  width: 0;
+  height: 0;
 }
 
 .hiw-step {

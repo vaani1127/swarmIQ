@@ -1419,6 +1419,13 @@ h2.section-title {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* Keep scrolling, hide the visible scrollbar */
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE/old Edge */
+}
+
+.history-list::-webkit-scrollbar {
+  display: none;                /* Chrome/Safari/Edge */
 }
 
 .history-empty {

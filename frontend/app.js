@@ -918,7 +918,7 @@ async function downloadPDF() {
     }
 
     function drawFooter() {
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont("NotoSans", "normal");
       pdf.setFontSize(8);
       pdf.setTextColor(...colors.muted);
       pdf.text(`SwarmIQ | Page ${pageNumber}`, pageW / 2, pageH - 8, { align: "center" });
@@ -951,7 +951,7 @@ async function downloadPDF() {
       const lineHeight = opts.lineHeight || size * 0.42;
       const x = opts.x || margin;
       const maxWidth = opts.maxWidth || contentW;
-      pdf.setFont("helvetica", opts.style || "normal");
+      pdf.setFont("NotoSans", opts.style || "normal");
       pdf.setFontSize(size);
       pdf.setTextColor(...(opts.color || colors.text));
 
@@ -1022,7 +1022,7 @@ async function downloadPDF() {
 
     paintPage();
 
-    pdf.setFont("helvetica", "bold");
+    pdf.setFont("NotoSans", "bold");
     pdf.setFontSize(20);
     pdf.setTextColor(...colors.strong);
     pdf.text("Swarm", margin, y);
@@ -1106,11 +1106,11 @@ async function downloadPDF() {
         pdf.rect(margin, stripY, 3, stripH, "F");
         pdf.setFillColor(38, 28, 10);
         pdf.rect(margin + 3, stripY, contentW - 3, stripH, "F");
-        pdf.setFont("helvetica", "bold");
+        pdf.setFont("NotoSans", "bold");
         pdf.setFontSize(9);
         pdf.setTextColor(245, 158, 11);
         pdf.text("CONFLICT DETECTED", margin + 7, stripY + 4.2);
-        pdf.setFont("helvetica", "normal");
+        pdf.setFont("NotoSans", "normal");
         pdf.setFontSize(9.5);
         pdf.setTextColor(...colors.text);
         const topicLines = pdf.splitTextToSize(String(_lastDebate.conflict_topic), contentW - 10);
@@ -1135,7 +1135,7 @@ async function downloadPDF() {
         if (!text) return;
         const rgb = _agentColor[agent] || [148, 163, 184];
 
-        pdf.setFont("helvetica", "normal");
+        pdf.setFont("NotoSans", "normal");
         pdf.setFontSize(9.5);
         const lines = pdf.splitTextToSize(text, contentW - 12);
         const cardH = 7 + lines.length * 4.2 + 3;
@@ -1149,12 +1149,12 @@ async function downloadPDF() {
         pdf.setFillColor(...colors.panel);
         pdf.rect(margin + 2.5, cy, contentW - 2.5, cardH, "F");
         // Agent name pill
-        pdf.setFont("helvetica", "bold");
+        pdf.setFont("NotoSans", "bold");
         pdf.setFontSize(8);
         pdf.setTextColor(rgb[0], rgb[1], rgb[2]);
         pdf.text(agent.toUpperCase(), margin + 6, cy + 4.5);
         // Body text
-        pdf.setFont("helvetica", "normal");
+        pdf.setFont("NotoSans", "normal");
         pdf.setFontSize(9.5);
         pdf.setTextColor(...colors.text);
         let by = cy + 9;
@@ -1171,11 +1171,11 @@ async function downloadPDF() {
         pdf.rect(margin, stripY, 3, stripH, "F");
         pdf.setFillColor(10, 30, 18);
         pdf.rect(margin + 3, stripY, contentW - 3, stripH, "F");
-        pdf.setFont("helvetica", "bold");
+        pdf.setFont("NotoSans", "bold");
         pdf.setFontSize(9);
         pdf.setTextColor(34, 197, 94);
         pdf.text("RESOLUTION", margin + 7, stripY + 4.2);
-        pdf.setFont("helvetica", "normal");
+        pdf.setFont("NotoSans", "normal");
         pdf.setFontSize(9.5);
         pdf.setTextColor(...colors.text);
         const resLines = pdf.splitTextToSize(String(_lastDebate.resolution), contentW - 10);

@@ -13,6 +13,8 @@ env/
 # Secrets
 upload.sh
 AZURE_SETUP.md
+SwarmIQ_Deck.html
+SwarmIQ_Submission.html
 DECK_SLIDE_OUTLINE.md
 REVIEW.html
 AUDIT_REPORT.html

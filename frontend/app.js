@@ -134,6 +134,7 @@ let authConfig = null;
 // -- Pipeline DAG controller ----------------------------------------
 const DAG = (() => {
   let specDone = new Set();
+  const SPECIALISTS = ["Market Analyst", "Financial Analyst", "Risk Analyst", "Competitive Analyst"];
 
   function nodeEl(id) { return document.getElementById("dag-" + id); }
   function dotsEl(id) { return document.getElementById("dag-dots-" + id); }
@@ -235,7 +236,6 @@ const DAG = (() => {
         return;
       }
 
-      const SPECIALISTS = ["Market Analyst","Financial Analyst","Risk Analyst","Competitive Analyst"];
       if (SPECIALISTS.includes(agent)) {
         const k = specKey(agent);
         if (status === "working") {
@@ -1231,9 +1231,7 @@ async function downloadPDF() {
   }
 }
 
-// PHASE 4: Microsoft Entra auth via MSAL.js
-// ----------------------------------------
-
+// -- Auth ----------------------------------------
 async function initAuth() {
   try {
     const resp = await fetch(API_BASE + "/config");
@@ -1436,10 +1434,7 @@ async function emailReport() {
   }
 }
 
-// ----------------------------------------
-// PHASE 4: History panel
-// ----------------------------------------
-
+// -- History panel ----------------------------------------
 function toggleHistory() {
   const panel = document.getElementById("history-panel");
   if (!panel) return;
@@ -1511,10 +1506,7 @@ async function loadAnalysis(analysisId) {
   }
 }
 
-// ----------------------------------------
-// PHASE 5: localStorage fallback for anonymous users
-// ----------------------------------------
-
+// -- Local storage (anonymous session persistence) ----------------------------------------
 const _LS_KEY = "swarmiq:last_analysis";
 
 function _saveToLocalStorage(payload) {

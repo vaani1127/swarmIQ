@@ -1,5 +1,4 @@
 import json
-import os
 
 from backend.tools import llm, web_search
 

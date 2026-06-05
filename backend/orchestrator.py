@@ -127,7 +127,6 @@ async def run_swarm(query: str, emit, session_id: str = "", redis_client=None) -
     for name in selected_display_names:
         await emit(name, "working", _WORKING_LABEL[name])
 
-    # ── Parallel specialists — only the selected ones run ─────────────────────
     t_spec = time.perf_counter()
     _specialist_fn = {
         "Market Analyst":      (market_analyst,      "market_task"),

@@ -206,4 +206,4 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 
 Thank you for contributing to SwarmIQ.
 
-— Team Paradise (Dhruv Goyal · Vaani Prashar)
+— Team Paradise (Dhruv Goyal · Vaani Prashar · Madhav Kapila)

@@ -92,7 +92,7 @@ async def websocket_endpoint(websocket: WebSocket, sid: str):
             await asyncio.sleep(30)
     except WebSocketDisconnect:
         connections.pop(sid, None)
-        logger.error(f"[{sid}] [WebSocket] disconnected")
+        logger.info(f"[{sid}] [WebSocket] disconnected")
 
 
 @app.get("/health")
@@ -136,7 +136,6 @@ async def analyze(request: Request, query: str = Form(...), session_id: str = Fo
 
     user = await get_current_user_optional(request)
 
-    # Global concurrency cap
     if _active_analyses >= _MAX_CONCURRENT:
         logger.error(f"[{session_id}] [Server] capacity_exceeded — {_active_analyses} active")
         return JSONResponse(
@@ -190,7 +189,6 @@ async def analyze(request: Request, query: str = Form(...), session_id: str = Fo
             except Exception:
                 pass
 
-        # Persist to Cosmos DB if the user is authenticated
         if user is not None:
             elapsed = time.perf_counter() - t0
             user_id = user.get("oid") or user.get("sub") or "anonymous"

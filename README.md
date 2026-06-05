@@ -188,6 +188,7 @@ python -m backend.main
 |---|---|---|
 | Dhruv Goyal | Product, Azure deployment, demo narrative, submission operations | [@DhruvGoyal404](https://github.com/DhruvGoyal404) |
 | Vaani Prashar | Full-stack — agent architecture, Semantic Kernel integration, frontend | [@vaani1127](https://github.com/vaani1127) |
+| Madhav Kapila | Full-stack — backend & integration | [@madhavkapila](https://github.com/madhavkapila) |
 
 ---
 

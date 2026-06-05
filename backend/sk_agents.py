@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor
 
 from dotenv import load_dotenv
@@ -197,7 +198,6 @@ async def run_sk_validation_synthesis(
             flagged_agents=flagged,
         )
 
-        # Build re-run plan for flagged agents
         issue_str = str(critic_result.get("issues", []))
         rerun_plan = [
             (key, _agent_fns[key], tasks.get(task_key, query) + f" REVISION REQUIRED — address these issues: {issue_str}", display)
@@ -210,12 +210,10 @@ async def run_sk_validation_synthesis(
         for _, _, _, display in rerun_plan:
             await emit(display, "working", "Revising analysis based on critic feedback...")
 
-        # Run flagged agents in parallel
         revised_results = await asyncio.gather(
             *[_run_in_thread(fn, revised_task, company) for _, fn, revised_task, _ in rerun_plan]
         )
 
-        # Emit done and build display→result lookup
         display_to_result: dict = {}
         for (_, _, _, display), result in zip(rerun_plan, revised_results):
             finding = result.get("findings", "") if isinstance(result, dict) else str(result)
@@ -228,7 +226,6 @@ async def run_sk_validation_synthesis(
         ]
         revision_happened = True
 
-        # Re-run Critic on full updated set
         await group_chat.add_chat_message(
             ChatMessageContent(
                 role=AuthorRole.USER,
@@ -311,10 +308,9 @@ async def run_sk_validation_synthesis(
     # Belt-and-braces: strip any ```...``` code fences and any leading "# Executive
     # Intelligence Report" heading that the LLM might emit despite instructions.
     if final_report:
-        import re as _re
-        final_report = _re.sub(r"```[a-zA-Z]*\s*", "", final_report)
+        final_report = re.sub(r"```[a-zA-Z]*\s*", "", final_report)
         final_report = final_report.replace("```", "")
-        final_report = _re.sub(r"^#\s+Executive Intelligence Report\s*\n+", "", final_report.strip())
+        final_report = re.sub(r"^#\s+Executive Intelligence Report\s*\n+", "", final_report.strip())
         final_report = final_report.strip()
 
     await emit("Synthesizer", "done", "Report ready")

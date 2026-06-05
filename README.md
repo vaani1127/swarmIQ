@@ -43,7 +43,7 @@ Once all specialists finish, the **Debate Moderator** scans for contradictions b
 
 ## Architecture
 
-![SwarmIQ Architecture Diagram](https://res.cloudinary.com/dxxip26b4/image/upload/v1780661895/swarmIQ/architecture-diagram.png)
+![SwarmIQ Architecture Diagram](https://res.cloudinary.com/dxxip26b4/image/upload/f_auto,q_auto,w_1600/v1780661895/swarmIQ/architecture-diagram.png)
 
 *Runtime architecture — GitHub Models powers inference; Semantic Kernel orchestrates the Critic + Synthesizer stage; Azure OpenAI (swarmiq-foundry-vp) is a provisioned fallback, not active at runtime.*
 
@@ -73,11 +73,11 @@ graph TD
 
 ### Use-case diagram
 
-![SwarmIQ Use-Case Diagram](https://res.cloudinary.com/dxxip26b4/image/upload/v1780661914/swarmIQ/use-case-diagram.png)
+![SwarmIQ Use-Case Diagram](https://res.cloudinary.com/dxxip26b4/image/upload/f_auto,q_auto,w_1600/v1780661914/swarmIQ/use-case-diagram.png)
 
 ### Class diagram
 
-![SwarmIQ Class Diagram](https://res.cloudinary.com/dxxip26b4/image/upload/v1780661904/swarmIQ/class-diagram.png)
+![SwarmIQ Class Diagram](https://res.cloudinary.com/dxxip26b4/image/upload/f_auto,q_auto,w_1600/v1780661904/swarmIQ/class-diagram.png)
 
 ---
 

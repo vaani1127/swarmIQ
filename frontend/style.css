@@ -715,6 +715,13 @@ h2.section-title {
   line-height: 1.55;
   border-top: 1px dashed var(--border);
   scroll-behavior: smooth;
+  /* Keep scrolling, hide the visible scrollbar */
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE/old Edge */
+}
+
+.thoughts-panel::-webkit-scrollbar {
+  display: none;                /* Chrome/Safari/Edge */
 }
 
 .thoughts-wrap.collapsed .thoughts-panel {

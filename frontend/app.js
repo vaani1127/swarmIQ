@@ -537,7 +537,13 @@ function populateAgentCard(agentName, data) {
 }
 
 function handleCacheHit() {
-  const names = ["Orchestrator","Market Analyst","Financial Analyst","Risk Analyst","Competitive Analyst","Critic"];
+  const names = [
+    "Orchestrator",
+    "Market Analyst", "Financial Analyst", "Risk Analyst", "Competitive Analyst",
+    "Debate Moderator",
+    "Critic",
+    "Synthesizer",
+  ];
   names.forEach(n => updateAgentCard(n, "done", "Loaded from cache"));
   const el = document.getElementById("timer-value");
   if (el) el.textContent = "⚡ cached";

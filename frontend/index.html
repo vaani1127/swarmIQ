@@ -47,10 +47,35 @@
 
   <div class="container">
 
-    <!-- HERO -->
-    <section class="hero">
+    <!-- LANDING NARRATIVE (cold-judge front door) -->
+    <section class="hero-narrative">
       <h1 class="logo">Swarm<span class="accent">IQ</span></h1>
-      <p class="tagline">6 specialized AI agents. One intelligence report.</p>
+      <p class="tagline-big">
+        Six AI agents <em>argue</em> about your investment thesis.
+      </p>
+      <p class="tagline-sub">
+        Watch them research, debate, critique, and synthesize a verdict in under 60 seconds — streamed live to your browser as it happens.
+      </p>
+      <div class="how-it-works-strip" aria-label="How SwarmIQ works">
+        <span class="hiw-step"><span class="hiw-icon">🧭</span> Orchestrator</span>
+        <span class="hiw-arrow">→</span>
+        <span class="hiw-step hiw-parallel">
+          <span class="hiw-mini"><span class="hiw-icon">📈</span> Market</span>
+          <span class="hiw-mini"><span class="hiw-icon">💰</span> Financial</span>
+          <span class="hiw-mini"><span class="hiw-icon">⚠️</span> Risk</span>
+          <span class="hiw-mini"><span class="hiw-icon">⚔️</span> Competitive</span>
+        </span>
+        <span class="hiw-arrow">→</span>
+        <span class="hiw-step"><span class="hiw-icon">🎭</span> Debate</span>
+        <span class="hiw-arrow">→</span>
+        <span class="hiw-step"><span class="hiw-icon">🔴</span> Critic</span>
+        <span class="hiw-arrow">→</span>
+        <span class="hiw-step"><span class="hiw-icon">✍️</span> Synthesizer</span>
+      </div>
+    </section>
+
+    <!-- HERO (input + CTA) -->
+    <section class="hero">
       <div class="input-wrap">
         <input type="text" id="query" placeholder="e.g. Analyze Zepto as an investment opportunity in India" />
         <button id="launch-btn" onclick="launchSwarm()">Launch Swarm ↗</button>
@@ -223,9 +248,21 @@
           <div class="agent-status">Idle</div>
         </div>
 
+        <div class="agent-card" data-agent="Debate Moderator">
+          <div class="agent-icon">D</div>
+          <div class="agent-name">Debate Moderator</div>
+          <div class="agent-status">Idle</div>
+        </div>
+
         <div class="agent-card critic-card" data-agent="Critic">
           <div class="agent-icon">✕</div>
           <div class="agent-name">Critic</div>
+          <div class="agent-status">Idle</div>
+        </div>
+
+        <div class="agent-card" data-agent="Synthesizer">
+          <div class="agent-icon">S</div>
+          <div class="agent-name">Synthesizer</div>
           <div class="agent-status">Idle</div>
         </div>
 

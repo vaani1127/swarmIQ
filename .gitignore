@@ -14,6 +14,7 @@ env/
 AZURE_SETUP.md
 DECK_SLIDE_OUTLINE.md
 REVIEW.html
+AUDIT_REPORT.html
 DEMO_VIDEO_SCRIPT.md
 .env
 .env.local

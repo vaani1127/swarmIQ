@@ -69,6 +69,8 @@ prompt_secret TAVILY_API_KEY "TAVILY_API_KEY"
 LLM_BASE_URL="${LLM_BASE_URL:-https://models.github.ai/inference}"
 LLM_MODEL="${LLM_MODEL:-openai/gpt-4o-mini}"
 
+REDIS_URL="${REDIS_URL:-redis://localhost:6379}"
+
 AZURE_AD_TENANT_ID="${AZURE_AD_TENANT_ID:-}"
 AZURE_AD_CLIENT_ID="${AZURE_AD_CLIENT_ID:-}"
 AZURE_AD_CLIENT_SECRET="${AZURE_AD_CLIENT_SECRET:-}"
@@ -142,7 +144,7 @@ az keyvault secret set --vault-name "$KV_NAME" --name "llm-base-url"            
 az keyvault secret set --vault-name "$KV_NAME" --name "llm-api-key"                 --value "$LLM_API_KEY"           --output none
 az keyvault secret set --vault-name "$KV_NAME" --name "llm-model"                   --value "$LLM_MODEL"             --output none
 az keyvault secret set --vault-name "$KV_NAME" --name "tavily-api-key"              --value "$TAVILY_API_KEY"        --output none
-az keyvault secret set --vault-name "$KV_NAME" --name "redis-url"                   --value "redis://localhost:6379" --output none
+az keyvault secret set --vault-name "$KV_NAME" --name "redis-url"                   --value "$REDIS_URL"             --output none
 az keyvault secret set --vault-name "$KV_NAME" --name "azure-ad-tenant-id"          --value "${AZURE_AD_TENANT_ID:-disabled}"          --output none
 az keyvault secret set --vault-name "$KV_NAME" --name "azure-ad-client-id"          --value "${AZURE_AD_CLIENT_ID:-disabled}"          --output none
 az keyvault secret set --vault-name "$KV_NAME" --name "azure-ad-client-secret"      --value "${AZURE_AD_CLIENT_SECRET:-disabled}"      --output none

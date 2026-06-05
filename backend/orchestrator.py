@@ -183,8 +183,13 @@ async def run_swarm(query: str, emit, session_id: str = "", redis_client=None) -
     ]
 
     # ── Debate step ────────────────────────────────────────────────────────────
+    await emit("Debate Moderator", "working", "Scanning specialist outputs for the biggest conflict...")
     t_debate = time.perf_counter()
     debate_result = await run_in_thread(debate_moderator_agent, outputs)
+    await emit(
+        "Debate Moderator", "done",
+        debate_result.get("conflict_topic", "Debate complete")[:80] + "...",
+    )
     logger.info(
         f"[{session_id}] [Debate] complete — "
         f"{int((time.perf_counter() - t_debate) * 1000)}ms"

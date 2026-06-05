@@ -43,6 +43,10 @@ Once all specialists finish, the **Debate Moderator** scans for contradictions b
 
 ## Architecture
 
+![SwarmIQ Architecture](frontend/images/architecture-diagram.png)
+
+*Runtime architecture — GitHub Models powers inference; Semantic Kernel orchestrates the Critic + Synthesizer stage; Azure OpenAI (swarmiq-foundry-vp) is a provisioned fallback, not active at runtime.*
+
 ```mermaid
 graph TD
     U[User Query] --> O[Orchestrator Agent\nPlanner]
@@ -66,6 +70,8 @@ graph TD
 6. Semantic Kernel `AgentGroupChat`: Critic reviews → optional revision loop → Synthesizer writes report
 7. Full result cached in Redis for 24 hours (keyed by `sha256(query)`)
 8. If authenticated, analysis saved to Cosmos DB under the user's Entra `oid`
+
+**[Use-case diagram](frontend/images/use-case-diagram.png)** · **[Class diagram](frontend/images/class-diagram.png)**
 
 ---
 

@@ -50,7 +50,7 @@
     <!-- LANDING NARRATIVE (cold-judge front door) -->
     <section class="hero-narrative">
       <h1 class="logo">Swarm<span class="accent">IQ</span></h1>
-      <p class="tagline-big">Six AI agents <em>argue</em> about your investment thesis.</p>
+      <p class="tagline-big">Eight AI agents <em>argue</em> about your investment thesis.</p>
       <p class="tagline-sub">Watch them research, debate, critique, and synthesize a verdict in under 60 seconds, streamed live to your browser as it happens.</p>
       <div class="how-it-works-strip" aria-label="How SwarmIQ works">
         <span class="hiw-step"><span class="hiw-icon">🧭</span> Orchestrator</span>
@@ -84,7 +84,15 @@
       </div>
 
       <!-- Resume button (shown when localStorage has a previous result) -->
-      <Button id="resume-btn" class="resume-btn hidden" onclick="resumeLastAnalysis()"></button>
+      <button
+          type="button"
+          id="resume-btn"
+          class="resume-btn hidden"
+          onclick="resumeLastAnalysis()"
+          aria-label="Resume last analysis"
+        >
+          ⏯
+      </button>
     </section>
 
     <!-- LIVE AGENT ACTIVITY -->

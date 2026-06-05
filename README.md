@@ -1,6 +1,6 @@
 # SwarmIQ — AI-Powered Investment Research Swarm
 
-> A swarm of 7 specialized AI agents that researches, debates, and synthesizes investment intelligence in under 60 seconds.
+> A swarm of 8 specialized AI agents that researches, debates, and synthesizes investment intelligence in under 60 seconds.
 
 ---
 
@@ -30,8 +30,8 @@ Once all specialists finish, the **Debate Moderator** scans for contradictions b
 
 | Tool | How We Use It | Why It Matters |
 |---|---|---|
-| **GitHub Models** (`openai/gpt-4o-mini`) | Inference layer — powers all 7 agents via the OpenAI-compatible endpoint at `https://models.github.ai/inference`. GitHub is a Microsoft subsidiary; same underlying Azure OpenAI infrastructure, free student-tier-friendly access via a GitHub PAT | Microsoft-owned inference, no Azure OpenAI quota hurdle, drop-in swap to direct Azure OpenAI by changing three env vars (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`) — **zero code changes** |
-| **Azure OpenAI (fallback)** | `swarmiq-foundry-vp` provisioned in `swarmiq-rg` (Central India) as the production-grade alternative to GitHub Models. Switching requires deploying a model in that resource, then setting three env vars (`LLM_BASE_URL=https://swarmiq-foundry-vp.openai.azure.com/openai/v1`, `LLM_API_KEY`, `LLM_MODEL`) — **zero code changes**. Both `tools.py` and `sk_agents.py` read the same vars, so the entire 7-agent + SK pipeline switches in one config update | Azure OpenAI endpoint provisioned and verifiable in `swarmiq-rg`; we run on GitHub Models for the hackathon (no quota required), with this resource standing by for production scale |
+| **GitHub Models** (`openai/gpt-4o-mini`) | Inference layer — powers all 8 agents via the OpenAI-compatible endpoint at `https://models.github.ai/inference`. GitHub is a Microsoft subsidiary; same underlying Azure OpenAI infrastructure, free student-tier-friendly access via a GitHub PAT | Microsoft-owned inference, no Azure OpenAI quota hurdle, drop-in swap to direct Azure OpenAI by changing three env vars (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`) — **zero code changes** |
+| **Azure OpenAI (fallback)** | `swarmiq-foundry-vp` provisioned in `swarmiq-rg` (Central India) as the production-grade alternative to GitHub Models. Switching requires deploying a model in that resource, then setting three env vars (`LLM_BASE_URL=https://swarmiq-foundry-vp.openai.azure.com/openai/v1`, `LLM_API_KEY`, `LLM_MODEL`) — **zero code changes**. Both `tools.py` and `sk_agents.py` read the same vars, so the entire 8-agent + SK pipeline switches in one config update | Azure OpenAI endpoint provisioned and verifiable in `swarmiq-rg`; we run on GitHub Models for the hackathon (no quota required), with this resource standing by for production scale |
 | **Semantic Kernel** v1.x | `AgentGroupChat` orchestrates the **Critic ↔ Synthesizer finalization stage** — adversarial review, optional NEEDS_REVISION revision loop, and final markdown report generation. `ChatCompletionAgent` wraps each SK agent with structured instructions, configured with a custom `AsyncOpenAI` client so it runs against any OpenAI-compatible endpoint. The Orchestrator, four specialists, and Debate Moderator run on a raw OpenAI-compatible client — SK is deliberately scoped to the validation+synthesis loop, where its structured agent contract and group-chat protocol add the most value | Production-grade Microsoft orchestration framework on the most critical stage of the swarm — not a hand-rolled validation loop. Transparent to whichever inference endpoint is wired |
 | **Azure Cosmos DB** | Stores per-user analysis history (MongoDB-compatible API, accessed via Motor async driver) | Serverless, globally distributed, scales to zero — no cold-start cost |
 | **Azure Container Apps** | Production hosting target — two app replicas, shared Redis sidecar, auto-scaling to zero | No infrastructure management; built-in HTTPS, custom domains, scaling |
@@ -43,7 +43,7 @@ Once all specialists finish, the **Debate Moderator** scans for contradictions b
 
 ## Architecture
 
-![SwarmIQ Architecture](frontend/images/architecture-diagram.png)
+![SwarmIQ Architecture Diagram](https://res.cloudinary.com/dxxip26b4/image/upload/v1780661895/swarmIQ/architecture-diagram.png)
 
 *Runtime architecture — GitHub Models powers inference; Semantic Kernel orchestrates the Critic + Synthesizer stage; Azure OpenAI (swarmiq-foundry-vp) is a provisioned fallback, not active at runtime.*
 
@@ -71,7 +71,13 @@ graph TD
 7. Full result cached in Redis for 24 hours (keyed by `sha256(query)`)
 8. If authenticated, analysis saved to Cosmos DB under the user's Entra `oid`
 
-**[Use-case diagram](frontend/images/use-case-diagram.png)** · **[Class diagram](frontend/images/class-diagram.png)**
+### Use-case diagram
+
+![SwarmIQ Use-Case Diagram](https://res.cloudinary.com/dxxip26b4/image/upload/v1780661914/swarmIQ/use-case-diagram.png)
+
+### Class diagram
+
+![SwarmIQ Class Diagram](https://res.cloudinary.com/dxxip26b4/image/upload/v1780661904/swarmIQ/class-diagram.png)
 
 ---
 
@@ -206,7 +212,7 @@ python -m backend.main
 |---|---|---|
 | **GitHub Copilot** | Team IDE assistant | Code completion and small in-editor implementation suggestions during development |
 | **Claude Code** (Anthropic) | claude-sonnet-4-6 | Primary development assistant — architecture design, agent implementation, Semantic Kernel integration, auth/Cosmos DB plumbing, frontend auth + history UI, README |
-| **GitHub Models** (`openai/gpt-4o-mini`) | OpenAI-compatible API at `https://models.github.ai/inference` | Runtime LLM — powers all 7 agents inside SwarmIQ itself (not used to write SwarmIQ's code). Microsoft-owned inference, OpenAI-compatible, drop-in swap to direct Azure OpenAI via `LLM_BASE_URL` env var |
+| **GitHub Models** (`openai/gpt-4o-mini`) | OpenAI-compatible API at `https://models.github.ai/inference` | Runtime LLM — powers all 8 agents inside SwarmIQ itself (not used to write SwarmIQ's code). Microsoft-owned inference, OpenAI-compatible, drop-in swap to direct Azure OpenAI via `LLM_BASE_URL` env var |
 
 ---
 

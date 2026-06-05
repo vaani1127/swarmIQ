@@ -11,6 +11,7 @@ venv/
 env/
 
 # Secrets
+upload.sh
 AZURE_SETUP.md
 DECK_SLIDE_OUTLINE.md
 REVIEW.html
@@ -38,3 +39,7 @@ build/
 # Private strategy docs (NOT for public repo)
 agent_swarms_student_roadmap.html
 agent_swarm_complete_blueprint.html
+
+# Diagrams + media assets — hosted on Cloudinary, referenced from README by URL
+frontend/images/
+images/
